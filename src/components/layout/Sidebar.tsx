@@ -39,8 +39,8 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           <GraduationCap size={18} />
         </div>
         <div className="min-w-0">
-          <h1 className="text-sm font-bold truncate">School Finance</h1>
-          <p className="text-[10px] text-gray-400">ERP System</p>
+          <h1 className="text-sm font-bold truncate">ORANGEAPPS</h1>
+          <p className="text-[10px] text-gray-400">ERP</p>
         </div>
       </div>
 
