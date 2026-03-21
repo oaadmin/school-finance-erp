@@ -46,12 +46,12 @@ export default function VendorManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Vendor / Payee Management</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Vendor / Payee Management</h1>
           <p className="text-sm text-gray-500 mt-1">Manage vendors, suppliers, and employee payees</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowModal(true)}><Plus size={16} /> Add Payee</button>
+        <button className="btn-primary text-xs sm:text-sm" onClick={() => setShowModal(true)}><Plus size={16} /> Add Payee</button>
       </div>
 
       <div className="card">

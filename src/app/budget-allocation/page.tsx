@@ -63,15 +63,15 @@ export default function BudgetAllocation() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Budget Allocation Table</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Budget Allocation Table</h1>
           <p className="text-sm text-gray-500 mt-1">Monthly budget distribution for SY 2025-2026</p>
         </div>
-        <div className="flex gap-2">
-          <button className="btn-secondary"><Download size={16} /> Export to Excel</button>
+        <div className="flex flex-wrap gap-2">
+          <button className="btn-secondary text-xs sm:text-sm"><Download size={16} /> Export to Excel</button>
           {hasEdits && (
-            <button className="btn-primary" onClick={handleSave} disabled={saving}>
+            <button className="btn-primary text-xs sm:text-sm" onClick={handleSave} disabled={saving}>
               <Save size={16} /> {saving ? 'Saving...' : 'Save Changes'}
             </button>
           )}

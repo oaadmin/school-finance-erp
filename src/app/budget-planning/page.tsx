@@ -51,16 +51,16 @@ export default function BudgetPlanning() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Budget Planning</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Budget Planning</h1>
           <p className="text-sm text-gray-500 mt-1">Plan and manage annual budgets</p>
         </div>
-        <div className="flex gap-2">
-          <button className="btn-secondary"><Copy size={16} /> Copy from Previous Year</button>
-          <button className="btn-secondary"><Upload size={16} /> Import</button>
-          <button className="btn-secondary"><Download size={16} /> Export</button>
-          <button className="btn-primary" onClick={() => setShowModal(true)}><Plus size={16} /> New Budget</button>
+        <div className="flex flex-wrap gap-2">
+          <button className="btn-secondary text-xs sm:text-sm"><Copy size={16} /> Copy from Previous Year</button>
+          <button className="btn-secondary text-xs sm:text-sm"><Upload size={16} /> Import</button>
+          <button className="btn-secondary text-xs sm:text-sm"><Download size={16} /> Export</button>
+          <button className="btn-primary text-xs sm:text-sm" onClick={() => setShowModal(true)}><Plus size={16} /> New Budget</button>
         </div>
       </div>
 

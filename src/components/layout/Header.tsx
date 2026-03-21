@@ -1,15 +1,28 @@
 'use client';
 
-import { Bell, Search, User, ChevronDown } from 'lucide-react';
+import { Bell, Search, User, ChevronDown, Menu } from 'lucide-react';
 import { useState } from 'react';
 
-export default function Header() {
+interface HeaderProps {
+  onMenuToggle?: () => void;
+  isMobile?: boolean;
+}
+
+export default function Header({ onMenuToggle, isMobile }: HeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-30">
-      <div className="flex items-center gap-4 flex-1">
-        <div className="relative max-w-md flex-1">
+    <header className="bg-white border-b border-gray-200 px-3 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-30">
+      <div className="flex items-center gap-2 sm:gap-4 flex-1">
+        {isMobile && (
+          <button
+            onClick={onMenuToggle}
+            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg lg:hidden"
+          >
+            <Menu size={20} />
+          </button>
+        )}
+        <div className="relative flex-1 max-w-md hidden sm:block">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
@@ -19,8 +32,8 @@ export default function Header() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">SY 2025-2026</span>
+      <div className="flex items-center gap-2 sm:gap-4">
+        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded hidden sm:inline">SY 2025-2026</span>
         <button className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg">
           <Bell size={18} />
           <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
@@ -33,11 +46,11 @@ export default function Header() {
             <div className="w-8 h-8 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center">
               <User size={16} />
             </div>
-            <div className="text-left hidden sm:block">
+            <div className="text-left hidden md:block">
               <p className="text-sm font-medium text-gray-700">Roberto Tan</p>
               <p className="text-[10px] text-gray-500">Finance Manager</p>
             </div>
-            <ChevronDown size={14} className="text-gray-400" />
+            <ChevronDown size={14} className="text-gray-400 hidden md:block" />
           </button>
           {showUserMenu && (
             <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50">

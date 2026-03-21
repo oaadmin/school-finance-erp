@@ -47,9 +47,9 @@ export default function ApprovalQueue() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Approval Queue</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Approval Queue</h1>
           <p className="text-sm text-gray-500 mt-1">{items.length} requests pending approval</p>
         </div>
       </div>
@@ -65,32 +65,30 @@ export default function ApprovalQueue() {
           {items.map(item => (
             <div key={item.id} className="card hover:shadow-md transition-shadow">
               <div className="p-5">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <Link href={`/disbursements/${item.id}`} className="text-lg font-semibold text-primary-600 hover:underline">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link href={`/disbursements/${item.id}`} className="text-base sm:text-lg font-semibold text-primary-600 hover:underline">
                         {item.request_number}
                       </Link>
-                      <span className="badge bg-amber-100 text-amber-700">Pending: {roleLabels[item.current_approver_role]}</span>
+                      <span className="badge bg-amber-100 text-amber-700 text-[10px] sm:text-xs">Pending: {roleLabels[item.current_approver_role]}</span>
                       {item.budget_remaining !== null && item.amount > item.budget_remaining && (
-                        <span className="badge bg-red-100 text-red-700 flex items-center gap-1">
-                          <AlertTriangle size={12} /> Exceeds Budget
+                        <span className="badge bg-red-100 text-red-700 text-[10px] sm:text-xs flex items-center gap-1">
+                          <AlertTriangle size={12} /> Over Budget
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">{item.description}</p>
-                    <div className="flex flex-wrap gap-4 mt-3 text-xs text-gray-500">
-                      <span>Department: <strong>{item.department_name}</strong></span>
-                      <span>Category: <strong>{item.category_name}</strong></span>
+                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{item.description}</p>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-500">
+                      <span>Dept: <strong>{item.department_name}</strong></span>
                       <span>Payee: <strong>{item.payee_name || '—'}</strong></span>
-                      <span>Requested by: <strong>{item.requested_by_name}</strong></span>
-                      <span>Date: <strong>{formatDate(item.request_date)}</strong></span>
-                      {item.due_date && <span>Due: <strong>{formatDate(item.due_date)}</strong></span>}
+                      <span>By: <strong>{item.requested_by_name}</strong></span>
+                      <span>{formatDate(item.request_date)}</span>
                     </div>
                     {item.budget_name && (
-                      <div className="mt-3 bg-gray-50 rounded-lg p-3 text-xs">
+                      <div className="mt-2 bg-gray-50 rounded-lg p-2 sm:p-3 text-xs hidden sm:block">
                         <span className="font-medium text-gray-700">{item.budget_name}</span>
-                        <div className="flex gap-4 mt-1 text-gray-500">
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-gray-500">
                           <span>Budget: {formatCurrency(item.budget_total)}</span>
                           <span>Committed: {formatCurrency(item.budget_committed)}</span>
                           <span>Actual: {formatCurrency(item.budget_actual)}</span>
@@ -101,19 +99,19 @@ export default function ApprovalQueue() {
                       </div>
                     )}
                   </div>
-                  <div className="text-right ml-6">
-                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(item.amount)}</p>
-                    <div className="flex gap-2 mt-3">
-                      <Link href={`/disbursements/${item.id}`} className="btn-secondary text-xs py-1.5">
-                        <Eye size={14} /> View
+                  <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-3 sm:ml-4">
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900">{formatCurrency(item.amount)}</p>
+                    <div className="flex gap-1.5 sm:gap-2">
+                      <Link href={`/disbursements/${item.id}`} className="btn-secondary text-xs py-1.5 px-2 sm:px-3">
+                        <Eye size={14} /> <span className="hidden sm:inline">View</span>
                       </Link>
-                      <button className="btn-success text-xs py-1.5" onClick={() => setActionModal({ id: item.id, action: 'approved' })}>
-                        <CheckCircle size={14} /> Approve
+                      <button className="btn-success text-xs py-1.5 px-2 sm:px-3" onClick={() => setActionModal({ id: item.id, action: 'approved' })}>
+                        <CheckCircle size={14} /> <span className="hidden sm:inline">Approve</span>
                       </button>
-                      <button className="btn-warning text-xs py-1.5" onClick={() => setActionModal({ id: item.id, action: 'returned' })}>
+                      <button className="btn-warning text-xs py-1.5 px-2" onClick={() => setActionModal({ id: item.id, action: 'returned' })}>
                         <RotateCcw size={14} />
                       </button>
-                      <button className="btn-danger text-xs py-1.5" onClick={() => setActionModal({ id: item.id, action: 'rejected' })}>
+                      <button className="btn-danger text-xs py-1.5 px-2" onClick={() => setActionModal({ id: item.id, action: 'rejected' })}>
                         <XCircle size={14} />
                       </button>
                     </div>

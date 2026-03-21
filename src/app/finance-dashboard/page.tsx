@@ -50,93 +50,91 @@ export default function FinanceDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Finance Dashboard</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Finance Dashboard</h1>
           <p className="text-sm text-gray-500 mt-1">School Year 2025-2026 Overview</p>
         </div>
-        <div className="flex gap-2">
-          <Link href="/disbursements/create" className="btn-primary">
-            <FileText size={16} /> New Request
-          </Link>
-        </div>
+        <Link href="/disbursements/create" className="btn-primary w-fit">
+          <FileText size={16} /> New Request
+        </Link>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="stat-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Total Annual Budget</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(summary.total_budget)}</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="stat-card !p-4 sm:!p-6">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-gray-500">Total Annual Budget</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900 mt-1 truncate">{formatCurrency(summary.total_budget)}</p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-              <PiggyBank size={24} className="text-blue-600" />
+            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+              <PiggyBank size={16} className="text-blue-600 sm:hidden" />
+              <PiggyBank size={24} className="text-blue-600 hidden sm:block" />
             </div>
           </div>
-          <div className="mt-3 flex items-center text-xs text-gray-500">
-            <span>SY 2025-2026</span>
-          </div>
+          <p className="text-xs text-gray-500 mt-2 hidden sm:block">SY 2025-2026</p>
         </div>
 
-        <div className="stat-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Committed Budget</p>
-              <p className="text-2xl font-bold text-amber-600 mt-1">{formatCurrency(summary.total_committed)}</p>
+        <div className="stat-card !p-4 sm:!p-6">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-gray-500">Committed Budget</p>
+              <p className="text-lg sm:text-2xl font-bold text-amber-600 mt-1 truncate">{formatCurrency(summary.total_committed)}</p>
             </div>
-            <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-              <Clock size={24} className="text-amber-600" />
+            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-amber-100 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+              <Clock size={16} className="text-amber-600 sm:hidden" />
+              <Clock size={24} className="text-amber-600 hidden sm:block" />
             </div>
           </div>
-          <div className="mt-3">
+          <div className="mt-2 sm:mt-3">
             <div className="progress-bar">
               <div className="progress-bar-fill bg-amber-500" style={{ width: `${(summary.total_committed / summary.total_budget * 100).toFixed(0)}%` }} />
             </div>
-            <p className="text-xs text-gray-500 mt-1">{(summary.total_committed / summary.total_budget * 100).toFixed(1)}% of budget</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 mt-1">{(summary.total_committed / summary.total_budget * 100).toFixed(1)}% of budget</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Actual Spending</p>
-              <p className="text-2xl font-bold text-green-600 mt-1">{formatCurrency(summary.total_actual)}</p>
+        <div className="stat-card !p-4 sm:!p-6">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-gray-500">Actual Spending</p>
+              <p className="text-lg sm:text-2xl font-bold text-green-600 mt-1 truncate">{formatCurrency(summary.total_actual)}</p>
             </div>
-            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-              <TrendingUp size={24} className="text-green-600" />
+            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-green-100 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+              <TrendingUp size={16} className="text-green-600 sm:hidden" />
+              <TrendingUp size={24} className="text-green-600 hidden sm:block" />
             </div>
           </div>
-          <div className="mt-3">
+          <div className="mt-2 sm:mt-3">
             <div className="progress-bar">
               <div className="progress-bar-fill bg-green-500" style={{ width: `${utilizationPct}%` }} />
             </div>
-            <p className="text-xs text-gray-500 mt-1">{utilizationPct}% utilized</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 mt-1">{utilizationPct}% utilized</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Remaining Budget</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(summary.remaining)}</p>
+        <div className="stat-card !p-4 sm:!p-6">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-gray-500">Remaining Budget</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900 mt-1 truncate">{formatCurrency(summary.remaining)}</p>
             </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-              <DollarSign size={24} className="text-purple-600" />
+            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-purple-100 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+              <DollarSign size={16} className="text-purple-600 sm:hidden" />
+              <DollarSign size={24} className="text-purple-600 hidden sm:block" />
             </div>
           </div>
-          <div className="mt-3 flex items-center gap-2">
-            {data.pendingApprovals > 0 && (
-              <span className="flex items-center gap-1 text-xs text-amber-600">
-                <AlertTriangle size={12} /> {data.pendingApprovals} pending approvals
-              </span>
-            )}
-          </div>
+          {data.pendingApprovals > 0 && (
+            <span className="flex items-center gap-1 text-[10px] sm:text-xs text-amber-600 mt-2">
+              <AlertTriangle size={12} /> {data.pendingApprovals} pending
+            </span>
+          )}
         </div>
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <div className="card">
           <div className="card-header flex items-center justify-between">
             <h3 className="font-semibold text-gray-900">Budget vs Actual by Department</h3>
@@ -183,7 +181,7 @@ export default function FinanceDashboard() {
       </div>
 
       {/* Bottom Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <div className="card">
           <div className="card-header">
             <h3 className="font-semibold text-gray-900">Spending by Category</h3>
@@ -220,26 +218,26 @@ export default function FinanceDashboard() {
               <thead>
                 <tr>
                   <th>Request #</th>
-                  <th>Description</th>
-                  <th>Department</th>
+                  <th className="hidden sm:table-cell">Description</th>
+                  <th className="hidden md:table-cell">Department</th>
                   <th>Amount</th>
                   <th>Status</th>
-                  <th>Date</th>
+                  <th className="hidden sm:table-cell">Date</th>
                 </tr>
               </thead>
               <tbody>
                 {data.recentDisbursements.map((dr) => (
                   <tr key={dr.id}>
                     <td>
-                      <Link href={`/disbursements/${dr.id}`} className="text-primary-600 hover:underline font-medium">
+                      <Link href={`/disbursements/${dr.id}`} className="text-primary-600 hover:underline font-medium text-xs sm:text-sm">
                         {dr.request_number}
                       </Link>
                     </td>
-                    <td className="max-w-[200px] truncate">{dr.description}</td>
-                    <td>{dr.department}</td>
-                    <td className="font-medium">{formatCurrency(dr.amount)}</td>
-                    <td><span className={`badge ${getStatusColor(dr.status)}`}>{getStatusLabel(dr.status)}</span></td>
-                    <td className="text-gray-500">{formatDate(dr.request_date)}</td>
+                    <td className="max-w-[200px] truncate hidden sm:table-cell">{dr.description}</td>
+                    <td className="hidden md:table-cell">{dr.department}</td>
+                    <td className="font-medium text-xs sm:text-sm">{formatCurrency(dr.amount)}</td>
+                    <td><span className={`badge ${getStatusColor(dr.status)} text-[10px] sm:text-xs`}>{getStatusLabel(dr.status)}</span></td>
+                    <td className="text-gray-500 hidden sm:table-cell">{formatDate(dr.request_date)}</td>
                   </tr>
                 ))}
               </tbody>

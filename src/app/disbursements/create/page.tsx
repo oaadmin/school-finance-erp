@@ -94,7 +94,7 @@ export default function CreateDisbursement() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-4 sm:space-y-6 max-w-5xl">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Create Disbursement Request</h1>
         <p className="text-sm text-gray-500 mt-1">Submit a new payment or reimbursement request</p>
@@ -104,7 +104,7 @@ export default function CreateDisbursement() {
       <div className="card">
         <div className="card-header"><h3 className="font-semibold text-gray-900">Request Details</h3></div>
         <div className="card-body">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="label">Request Date *</label>
               <input className="input-field" type="date" value={form.request_date} onChange={e => setForm({...form, request_date: e.target.value})} />

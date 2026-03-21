@@ -55,36 +55,38 @@ export default function DisbursementDetail() {
   const approvalLabels: Record<string, string> = { department_head: 'Department Head', finance_staff: 'Finance Staff', finance_manager: 'Finance Manager', treasury: 'Treasury' };
 
   return (
-    <div className="space-y-6 max-w-5xl">
-      <div className="flex items-center gap-4">
-        <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600"><ArrowLeft size={20} /></button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">{data.request_number}</h1>
-            <span className={`badge text-sm ${getStatusColor(data.status)}`}>{getStatusLabel(data.status)}</span>
+    <div className="space-y-4 sm:space-y-6 max-w-5xl">
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600"><ArrowLeft size={20} /></button>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-900">{data.request_number}</h1>
+              <span className={`badge text-xs sm:text-sm ${getStatusColor(data.status)}`}>{getStatusLabel(data.status)}</span>
+            </div>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1 line-clamp-2">{data.description}</p>
           </div>
-          <p className="text-sm text-gray-500 mt-1">{data.description}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {data.status === 'draft' && (
-            <button className="btn-primary" onClick={handleSubmit}><Send size={16} /> Submit for Approval</button>
+            <button className="btn-primary text-xs sm:text-sm" onClick={handleSubmit}><Send size={16} /> Submit</button>
           )}
           {data.status === 'pending_approval' && (
             <>
-              <button className="btn-success" onClick={() => setShowApprovalModal('approved')}><CheckCircle size={16} /> Approve</button>
-              <button className="btn-warning" onClick={() => setShowApprovalModal('returned')}><RotateCcw size={16} /> Return</button>
-              <button className="btn-danger" onClick={() => setShowApprovalModal('rejected')}><XCircle size={16} /> Reject</button>
+              <button className="btn-success text-xs sm:text-sm" onClick={() => setShowApprovalModal('approved')}><CheckCircle size={16} /> Approve</button>
+              <button className="btn-warning text-xs sm:text-sm" onClick={() => setShowApprovalModal('returned')}><RotateCcw size={16} /> Return</button>
+              <button className="btn-danger text-xs sm:text-sm" onClick={() => setShowApprovalModal('rejected')}><XCircle size={16} /> Reject</button>
             </>
           )}
           {data.status === 'approved' && (
-            <Link href={`/payment-processing?disbursement_id=${data.id}`} className="btn-primary"><CreditCard size={16} /> Process Payment</Link>
+            <Link href={`/payment-processing?disbursement_id=${data.id}`} className="btn-primary text-xs sm:text-sm"><CreditCard size={16} /> Process Payment</Link>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Main Info */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           <div className="card">
             <div className="card-header"><h3 className="font-semibold text-gray-900">Request Information</h3></div>
             <div className="card-body grid grid-cols-2 gap-4 text-sm">

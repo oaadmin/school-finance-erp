@@ -45,14 +45,14 @@ export default function MonthlyVarianceReport() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Monthly Variance Report</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Monthly Variance Report</h1>
           <p className="text-sm text-gray-500 mt-1">Month-by-month budget and spending analysis</p>
         </div>
-        <div className="flex gap-2">
-          <button className="btn-secondary"><Download size={16} /> Export PDF</button>
-          <button className="btn-secondary"><Download size={16} /> Export Excel</button>
+        <div className="flex flex-wrap gap-2">
+          <button className="btn-secondary text-xs sm:text-sm"><Download size={16} /> Export PDF</button>
+          <button className="btn-secondary text-xs sm:text-sm"><Download size={16} /> Export Excel</button>
         </div>
       </div>
 
@@ -64,7 +64,7 @@ export default function MonthlyVarianceReport() {
         </select>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <div className="stat-card"><p className="text-xs text-gray-500">YTD Budget</p><p className="text-xl font-bold">{formatCurrency(totalBudget)}</p></div>
         <div className="stat-card"><p className="text-xs text-gray-500">YTD Actual</p><p className="text-xl font-bold text-blue-600">{formatCurrency(totalActual)}</p></div>
         <div className="stat-card"><p className="text-xs text-gray-500">YTD Variance</p>
