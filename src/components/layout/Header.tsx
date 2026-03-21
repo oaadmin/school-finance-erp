@@ -5,23 +5,21 @@ import { useState } from 'react';
 
 interface HeaderProps {
   onMenuToggle?: () => void;
-  isMobile?: boolean;
 }
 
-export default function Header({ onMenuToggle, isMobile }: HeaderProps) {
+export default function Header({ onMenuToggle }: HeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   return (
     <header className="bg-white border-b border-gray-200 px-3 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-30">
       <div className="flex items-center gap-2 sm:gap-4 flex-1">
-        {isMobile && (
-          <button
-            onClick={onMenuToggle}
-            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg lg:hidden"
-          >
-            <Menu size={20} />
-          </button>
-        )}
+        {/* Hamburger - visible only on mobile */}
+        <button
+          onClick={onMenuToggle}
+          className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg lg:hidden"
+        >
+          <Menu size={20} />
+        </button>
         <div className="relative flex-1 max-w-md hidden sm:block">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
