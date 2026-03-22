@@ -1054,7 +1054,7 @@ export default function ApiDocsPage() {
               { icon: Globe, label: 'Base URL', value: BASE_URL },
               { icon: Server, label: 'Format', value: 'JSON (REST)' },
               { icon: Zap, label: 'Endpoints', value: `${apiSections.reduce((s, sec) => s + sec.endpoints.length, 0)} endpoints` },
-              { icon: Lock, label: 'Auth', value: 'API Key (coming soon)' },
+              { icon: Lock, label: 'Auth', value: 'API Key (X-API-Key)' },
             ].map(info => (
               <div key={info.label} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
                 <div className="flex items-center gap-2 mb-1">
@@ -1072,6 +1072,21 @@ export default function ApiDocsPage() {
         {/* Sidebar Nav */}
         <nav className="hidden lg:block w-56 flex-shrink-0">
           <div className="sticky top-6 space-y-1">
+            <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-3">Getting Started</h3>
+            <a
+              href="#authentication"
+              onClick={() => setActiveSection('authentication')}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors mb-1 ${
+                activeSection === 'authentication'
+                  ? 'bg-amber-50 text-amber-700 font-medium'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
+            >
+              <Lock size={15} className="flex-shrink-0" />
+              <span>Authentication</span>
+              <span className="ml-auto text-[10px] text-amber-600 bg-amber-100 rounded-full px-1.5 py-0.5 font-medium">KEY</span>
+            </a>
+            <div className="border-t border-gray-100 my-3" />
             <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-3">API Modules</h3>
             {apiSections.map(sec => {
               const Icon = sec.icon;
@@ -1110,6 +1125,188 @@ export default function ApiDocsPage() {
               className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 bg-white text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none shadow-sm"
             />
           </div>
+
+          {/* ── Authentication Section ── */}
+          <section id="authentication" className="scroll-mt-6">
+            <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center">
+                    <Lock size={20} className="text-amber-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-white">Authentication</h2>
+                    <p className="text-sm text-gray-400">All API requests require an API key for authentication</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* API Key Box */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3">Your API Key</h3>
+                  <div className="bg-slate-900 rounded-lg p-4 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-2 h-2 bg-green-400 rounded-full flex-shrink-0 animate-pulse" />
+                      <code className="text-sm font-mono text-emerald-400 truncate select-all">
+                        oa_sk_live_7f3a9b2c4d5e6f8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6
+                      </code>
+                    </div>
+                    <CopyButton text="oa_sk_live_7f3a9b2c4d5e6f8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6" />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2 flex items-center gap-1.5">
+                    <Shield size={12} />
+                    Keep this key secret. Do not expose it in client-side code or public repositories.
+                  </p>
+                </div>
+
+                {/* 3 Methods */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3">How to Authenticate</h3>
+                  <p className="text-xs text-gray-600 mb-4">Pass your API key using any of these three methods (in order of preference):</p>
+
+                  <div className="space-y-3">
+                    {/* Method 1 */}
+                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                      <div className="bg-gray-50 px-4 py-2 flex items-center gap-2 border-b border-gray-200">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">RECOMMENDED</span>
+                        <span className="text-sm font-medium text-gray-700">X-API-Key Header</span>
+                      </div>
+                      <div className="bg-[#1e1e2e] px-4 py-3">
+                        <code className="text-[13px] font-mono text-gray-300">
+                          <span className="text-blue-400">curl</span> {BASE_URL}/api/accounting/ar?type=invoices \{'\n'}
+                          {'  '}<span className="text-amber-400">-H</span> <span className="text-emerald-400">{'"X-API-Key: oa_sk_live_7f3a9b2c4d5e6f8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"'}</span>
+                        </code>
+                      </div>
+                    </div>
+
+                    {/* Method 2 */}
+                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                      <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                        <span className="text-sm font-medium text-gray-700">Authorization Bearer Header</span>
+                      </div>
+                      <div className="bg-[#1e1e2e] px-4 py-3">
+                        <code className="text-[13px] font-mono text-gray-300">
+                          <span className="text-blue-400">curl</span> {BASE_URL}/api/accounting/ar?type=invoices \{'\n'}
+                          {'  '}<span className="text-amber-400">-H</span> <span className="text-emerald-400">{'"Authorization: Bearer oa_sk_live_7f3a9b2c4d5e6f8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"'}</span>
+                        </code>
+                      </div>
+                    </div>
+
+                    {/* Method 3 */}
+                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                      <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-700">Query Parameter</span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">LESS SECURE</span>
+                      </div>
+                      <div className="bg-[#1e1e2e] px-4 py-3">
+                        <code className="text-[13px] font-mono text-gray-300">
+                          <span className="text-blue-400">curl</span> <span className="text-emerald-400">{`"${BASE_URL}/api/accounting/ar?type=invoices&api_key=oa_sk_live_..."`}</span>
+                        </code>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Code Examples */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3">Code Examples</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <CodeBlock
+                      title="JavaScript / Node.js"
+                      code={`const API_KEY = 'oa_sk_live_7f3a...5d6';
+
+const res = await fetch(
+  '${BASE_URL}/api/accounting/ar?type=invoices',
+  {
+    headers: {
+      'X-API-Key': API_KEY,
+      'Content-Type': 'application/json',
+    },
+  }
+);
+const invoices = await res.json();`}
+                    />
+                    <CodeBlock
+                      title="Python"
+                      code={`import requests
+
+API_KEY = 'oa_sk_live_7f3a...5d6'
+
+res = requests.get(
+    '${BASE_URL}/api/accounting/ar',
+    params={'type': 'invoices'},
+    headers={'X-API-Key': API_KEY}
+)
+invoices = res.json()`}
+                    />
+                    <CodeBlock
+                      title="PHP"
+                      code={`$apiKey = 'oa_sk_live_7f3a...5d6';
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL,
+  '${BASE_URL}/api/accounting/ar?type=invoices');
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+  'X-API-Key: ' . $apiKey
+]);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+$response = json_decode(curl_exec($ch));`}
+                    />
+                    <CodeBlock
+                      title="C# / .NET"
+                      code={`var client = new HttpClient();
+client.DefaultRequestHeaders.Add(
+  "X-API-Key",
+  "oa_sk_live_7f3a...5d6"
+);
+
+var res = await client.GetAsync(
+  "${BASE_URL}/api/accounting/ar?type=invoices"
+);
+var json = await res.Content
+  .ReadAsStringAsync();`}
+                    />
+                  </div>
+                </div>
+
+                {/* Error Response */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3">Error Responses</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-2 font-medium">Missing API Key (401)</p>
+                      <CodeBlock code={`{
+  "error": "Unauthorized",
+  "message": "Missing API key. Provide via X-API-Key header, Authorization: Bearer header, or api_key query parameter.",
+  "docs": "/api-docs"
+}`} />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-2 font-medium">Invalid API Key (401)</p>
+                      <CodeBlock code={`{
+  "error": "Unauthorized",
+  "message": "Invalid API key.",
+  "docs": "/api-docs"
+}`} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Key Management Info */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+                  <h4 className="text-sm font-semibold text-blue-800 mb-1">Key Management</h4>
+                  <ul className="text-xs text-blue-700 space-y-1">
+                    <li>• API keys use the format: <code className="bg-blue-100 px-1 rounded">oa_sk_live_{'<'}48-char-hex{'>'}</code></li>
+                    <li>• Multiple keys can be configured for different integrations (enrollment, cashiering, etc.)</li>
+                    <li>• Keys are validated server-side via middleware — no database lookup needed</li>
+                    <li>• To request additional keys or rotate a compromised key, contact your system administrator</li>
+                    <li>• The UI dashboard uses same-origin requests and does not require an API key</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </section>
 
           {/* API Sections */}
           {filtered.map(section => {

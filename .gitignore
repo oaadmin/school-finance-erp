@@ -3,3 +3,8 @@ node_modules
 finance.db
 *.db
 .vercel
+
+# Environment variables
+.env
+.env.local
+.env.production
