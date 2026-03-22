@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency } from '@/lib/utils';
+import { exportToExcel, exportToPDF } from '@/lib/export';
 import ReportFilters from '@/components/reports/ReportFilters';
 import { AlertTriangle, CheckCircle } from 'lucide-react';
 
@@ -33,7 +34,11 @@ export default function TrialBalance() {
         </div>
       </div>
 
-      <ReportFilters dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
+      <ReportFilters dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo}
+        onExport={(fmt) => fmt === 'excel'
+          ? exportToExcel(data, 'trial-balance')
+          : exportToPDF('Trial Balance', ['Account Code', 'Account Name', 'Type', 'Debit', 'Credit'], data.map(r => [r.account_code, r.account_name, r.account_type, formatCurrency(r.total_debit), formatCurrency(r.total_credit)]), 'trial-balance')
+        } />
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div className="stat-card !p-4"><p className="text-xs text-gray-500">Total Debit</p><p className="text-lg font-bold text-blue-600">{formatCurrency(totals.totalDebit)}</p></div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { exportToExcel, exportToPDF } from '@/lib/export';
 import ReportFilters from '@/components/reports/ReportFilters';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
@@ -30,7 +31,11 @@ export default function JournalEntriesReport() {
         <p className="text-sm text-gray-500">{data.length} journal entries found</p>
       </div>
 
-      <ReportFilters dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo}>
+      <ReportFilters dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo}
+        onExport={(fmt) => {
+          if (fmt === 'excel') exportToExcel(data.map(je => ({ entry_number: je.entry_number, date: je.entry_date, description: je.description, type: je.reference_type, debit: je.total_debit, credit: je.total_credit, status: je.status })), 'journal-entries');
+          else exportToPDF('Journal Entries', ['Journal #', 'Date', 'Description', 'Type', 'Debit', 'Credit', 'Status'], data.map(je => [je.entry_number, formatDate(je.entry_date), je.description, je.reference_type, formatCurrency(je.total_debit), formatCurrency(je.total_credit), je.status]), 'journal-entries');
+        }}>
         <div>
           <label className="text-[10px] text-gray-500 uppercase tracking-wider">Status</label>
           <select className="select-field text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>

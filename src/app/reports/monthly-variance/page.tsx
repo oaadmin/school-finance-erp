@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency, getVarianceStatus } from '@/lib/utils';
+import { exportToExcel, exportToPDF } from '@/lib/export';
 import { Download, Filter } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, ComposedChart, Area } from 'recharts';
 
@@ -51,8 +52,8 @@ export default function MonthlyVarianceReport() {
           <p className="text-sm text-gray-500 mt-1">Month-by-month budget and spending analysis</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button className="btn-secondary text-xs sm:text-sm"><Download size={16} /> Export PDF</button>
-          <button className="btn-secondary text-xs sm:text-sm"><Download size={16} /> Export Excel</button>
+          <button className="btn-secondary text-xs sm:text-sm" onClick={() => exportToPDF('Monthly Variance Report', ['Month', 'Budget', 'Actual', 'Variance'], data.map(d => [MONTHS[d.month - 1], formatCurrency(d.budget), formatCurrency(d.actual), formatCurrency(d.variance)]), 'monthly-variance')}><Download size={16} /> Export PDF</button>
+          <button className="btn-secondary text-xs sm:text-sm" onClick={() => exportToExcel(data.map(d => ({ month: MONTHS[d.month - 1], budget: d.budget, actual: d.actual, variance: d.variance })), 'monthly-variance')}><Download size={16} /> Export Excel</button>
         </div>
       </div>
 

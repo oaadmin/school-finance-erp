@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency } from '@/lib/utils';
-import { AlertTriangle } from 'lucide-react';
+import { exportToExcel, exportToPDF } from '@/lib/export';
+import { AlertTriangle, Download } from 'lucide-react';
 
 interface AgingRow { payee_code: string; payee: string; tin: string; current_amount: number; days_30: number; days_60: number; days_90: number; over_90: number; total: number; }
 
@@ -17,9 +18,15 @@ export default function APAging() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Accounts Payable Aging</h1>
-        <p className="text-sm text-gray-500">Outstanding payables by aging bucket</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Accounts Payable Aging</h1>
+          <p className="text-sm text-gray-500">Outstanding payables by aging bucket</p>
+        </div>
+        <div className="flex gap-2">
+          <button className="btn-secondary text-xs" onClick={() => exportToExcel(data.map(r => ({ payee: r.payee, tin: r.tin, current: r.current_amount, '1_30_days': r.days_30, '31_60_days': r.days_60, '61_90_days': r.days_90, over_90: r.over_90, total: r.total })), 'ap-aging')}><Download size={14} /> Excel</button>
+          <button className="btn-secondary text-xs" onClick={() => exportToPDF('Accounts Payable Aging', ['Payee', 'TIN', 'Current', '1-30', '31-60', '61-90', '90+', 'Total'], data.map(r => [r.payee, r.tin, formatCurrency(r.current_amount), formatCurrency(r.days_30), formatCurrency(r.days_60), formatCurrency(r.days_90), formatCurrency(r.over_90), formatCurrency(r.total)]), 'ap-aging')}><Download size={14} /> PDF</button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">

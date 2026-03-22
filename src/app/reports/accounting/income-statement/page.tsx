@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency } from '@/lib/utils';
+import { exportToExcel, exportToPDF } from '@/lib/export';
 import ReportFilters from '@/components/reports/ReportFilters';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -66,7 +67,12 @@ export default function IncomeStatement() {
         <p className="text-sm text-gray-500">Profit & Loss for the period</p>
       </div>
 
-      <ReportFilters dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
+      <ReportFilters dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo}
+        onExport={(fmt) => {
+          const allItems = [...revenue.map(i => ({ ...i, section: 'Revenue' })), ...costOfServices.map(i => ({ ...i, section: 'Cost of Services' })), ...expenses.map(i => ({ ...i, section: 'Operating Expenses' }))];
+          if (fmt === 'excel') exportToExcel(allItems, 'income-statement');
+          else exportToPDF('Income Statement', ['Section', 'Account Code', 'Account Name', 'Current Amount', 'Previous Amount'], allItems.map(i => [i.section, i.account_code, i.account_name, formatCurrency(i.current_amount), formatCurrency(i.previous_amount)]), 'income-statement');
+        }} />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="stat-card !p-4">

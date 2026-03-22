@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency } from '@/lib/utils';
+import { exportToExcel, exportToPDF } from '@/lib/export';
 import ReportFilters from '@/components/reports/ReportFilters';
 import { Landmark, Download, FileSpreadsheet } from 'lucide-react';
 import Link from 'next/link';
@@ -38,7 +39,11 @@ export default function BIRReports() {
         </div>
       </div>
 
-      <ReportFilters dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
+      <ReportFilters dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo}
+        onExport={(fmt) => {
+          if (fmt === 'excel') exportToExcel(trialBalance, 'bir-trial-balance');
+          else exportToPDF('BIR Trial Balance', ['Account Code', 'Account Name', 'Type', 'Debit', 'Credit'], trialBalance.map(r => [r.account_code, r.account_name, r.account_type, r.total_debit > 0 ? formatCurrency(r.total_debit) : '', r.total_credit > 0 ? formatCurrency(r.total_credit) : '']), 'bir-trial-balance');
+        }} />
 
       {/* Quick Access Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -63,7 +68,7 @@ export default function BIRReports() {
       <div className="card">
         <div className="card-header bg-amber-50 flex items-center justify-between">
           <h3 className="font-semibold text-amber-800 flex items-center gap-2"><FileSpreadsheet size={16} /> BIR Trial Balance Export</h3>
-          <button className="btn-secondary text-xs"><Download size={14} /> Export BIR Format</button>
+          <button className="btn-secondary text-xs" onClick={() => exportToExcel(trialBalance, 'bir-trial-balance')}><Download size={14} /> Export BIR Format</button>
         </div>
         <div className="table-container">
           <table className="data-table text-xs sm:text-sm">

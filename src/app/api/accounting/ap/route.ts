@@ -131,3 +131,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to create bill' }, { status: 500 });
   }
 }
+
+export async function PUT(req: NextRequest) {
+  try {
+    const db = getDb();
+    const body = await req.json();
+
+    if (!body.id) {
+      return NextResponse.json({ error: 'id is required' }, { status: 400 });
+    }
+
+    const grossAmount = body.gross_amount || 0;
+    const vatAmount = body.vat_amount || 0;
+    const withholdingTax = body.withholding_tax || 0;
+    const netPayable = grossAmount + vatAmount - withholdingTax;
+
+    db.prepare(`
+      UPDATE ap_bills SET bill_date = ?, due_date = ?, vendor_id = ?,
+        department_id = ?, description = ?,
+        gross_amount = ?, vat_amount = ?, withholding_tax = ?, net_payable = ?,
+        balance = ? - amount_paid,
+        updated_at = datetime('now')
+      WHERE id = ?
+    `).run(
+      body.bill_date || null, body.due_date || null, body.vendor_id || null,
+      body.department_id || null, body.description || null,
+      grossAmount, vatAmount, withholdingTax, netPayable,
+      netPayable,
+      body.id
+    );
+
+    return NextResponse.json({ id: body.id });
+  } catch (error) {
+    console.error('AP PUT error:', error);
+    return NextResponse.json({ error: 'Failed to update bill' }, { status: 500 });
+  }
+}

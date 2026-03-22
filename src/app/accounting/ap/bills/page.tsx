@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { formatCurrency, getStatusColor, getStatusLabel, formatDate } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
-import { FileText, Filter, Plus, Search, X } from 'lucide-react';
+import { FileText, Filter, Plus, Search, X, Edit2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface Bill {
@@ -59,6 +59,7 @@ export default function SupplierBills() {
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     vendor_id: '',
@@ -96,31 +97,47 @@ export default function SupplierBills() {
     setForm({ ...form, gross_amount: gross, vat_amount: vat, withholding_tax: wht, net_payable: Math.round(net * 100) / 100 });
   };
 
-  const handleCreate = async () => {
+  const emptyForm = { vendor_id: '', department_id: '', bill_date: new Date().toISOString().split('T')[0], due_date: '', description: '', gross_amount: 0, vat_amount: 0, withholding_tax: 0, net_payable: 0 };
+
+  const openEdit = (b: Bill) => {
+    setEditingId(b.id);
+    setForm({
+      vendor_id: '', department_id: '',
+      bill_date: b.bill_date || '', due_date: b.due_date || '',
+      description: b.description || '',
+      gross_amount: b.gross_amount || 0, vat_amount: b.vat_amount || 0,
+      withholding_tax: b.withholding_tax || 0, net_payable: b.net_payable || 0,
+    });
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingId(null);
+    setForm(emptyForm);
+  };
+
+  const handleSave = async () => {
     setSubmitting(true);
     try {
+      const method = editingId ? 'PUT' : 'POST';
+      const payload = editingId ? { ...form, id: editingId } : form;
       const res = await fetch('/api/accounting/ap', {
-        method: 'POST',
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         const data = await res.json();
-        success('Bill Created', `Bill ${data.bill_number || ''} has been created successfully.`);
-        setShowModal(false);
-        setForm({
-          vendor_id: '', department_id: '',
-          bill_date: new Date().toISOString().split('T')[0],
-          due_date: '', description: '',
-          gross_amount: 0, vat_amount: 0, withholding_tax: 0, net_payable: 0,
-        });
+        success(editingId ? 'Bill Updated' : 'Bill Created', `Bill ${data.bill_number || ''} has been ${editingId ? 'updated' : 'created'} successfully.`);
+        closeModal();
         loadBills();
       } else {
         const err = await res.json().catch(() => ({}));
-        error('Creation Failed', err.message || err.error || 'Could not create bill. Please try again.');
+        error(editingId ? 'Update Failed' : 'Creation Failed', err.message || err.error || 'Could not save bill. Please try again.');
       }
     } catch (e) {
-      error('Creation Failed', 'Network error. Please try again.');
+      error('Save Failed', 'Network error. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -143,7 +160,7 @@ export default function SupplierBills() {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Supplier Bills</h1>
           <p className="text-sm text-gray-500 mt-1">{filtered.length} bills &middot; Total Net Payable: {formatCurrency(totalNet)}</p>
         </div>
-        <button className="btn-primary text-xs sm:text-sm" onClick={() => setShowModal(true)}>
+        <button className="btn-primary text-xs sm:text-sm" onClick={() => { setEditingId(null); setShowModal(true); }}>
           <Plus size={16} /> New Bill
         </button>
       </div>
@@ -176,6 +193,7 @@ export default function SupplierBills() {
                 <th className="text-right">Net Payable</th>
                 <th className="text-right hidden lg:table-cell">Balance</th>
                 <th>Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -199,6 +217,13 @@ export default function SupplierBills() {
                       {getStatusLabel(b.status)}
                     </span>
                   </td>
+                  <td>
+                    {b.status === 'draft' && (
+                      <button onClick={() => openEdit(b)} className="p-1 text-gray-400 hover:text-primary-600" title="Edit">
+                        <Edit2 size={14} />
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
@@ -214,8 +239,8 @@ export default function SupplierBills() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b flex items-center justify-between">
-              <h2 className="text-lg font-bold">New Supplier Bill</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              <h2 className="text-lg font-bold">{editingId ? 'Edit Supplier Bill' : 'New Supplier Bill'}</h2>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
             <div className="p-6 space-y-4">
               <div>
@@ -283,9 +308,9 @@ export default function SupplierBills() {
               </div>
             </div>
             <div className="p-6 border-t flex justify-end gap-3">
-              <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="btn-primary" onClick={handleCreate} disabled={submitting || !form.vendor_id || !form.gross_amount}>
-                <Plus size={16} /> {submitting ? 'Saving...' : 'Create Bill'}
+              <button className="btn-secondary" onClick={closeModal}>Cancel</button>
+              <button className="btn-primary" onClick={handleSave} disabled={submitting || !form.vendor_id || !form.gross_amount}>
+                <Plus size={16} /> {submitting ? 'Saving...' : (editingId ? 'Update Bill' : 'Create Bill')}
               </button>
             </div>
           </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency } from '@/lib/utils';
+import { exportToExcel, exportToPDF } from '@/lib/export';
 import ReportFilters from '@/components/reports/ReportFilters';
 import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 
@@ -56,7 +57,20 @@ export default function CashFlowStatement() {
         <p className="text-sm text-gray-500">Cash inflows and outflows by activity</p>
       </div>
 
-      <ReportFilters dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
+      <ReportFilters dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo}
+        onExport={(fmt) => {
+          const rows = [
+            { activity: 'Operating', item: 'Cash from revenue', amount: data.operating.cash_from_revenue },
+            { activity: 'Operating', item: 'Cash for expenses', amount: -data.operating.cash_for_expenses },
+            { activity: 'Operating', item: 'Depreciation', amount: data.operating.depreciation },
+            { activity: 'Operating', item: 'Net Operating', amount: data.operating.net },
+            { activity: 'Investing', item: 'Equipment purchases', amount: data.investing.net },
+            { activity: 'Financing', item: 'Loan payments', amount: data.financing.net },
+            { activity: 'Total', item: 'Net Cash Flow', amount: data.netCashFlow },
+          ];
+          if (fmt === 'excel') exportToExcel(rows, 'cash-flow');
+          else exportToPDF('Cash Flow Statement', ['Activity', 'Item', 'Amount'], rows.map(r => [r.activity, r.item, formatCurrency(r.amount)]), 'cash-flow');
+        }} />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="stat-card !p-4"><p className="text-xs text-gray-500">Operating</p><p className={`text-lg font-bold ${data.operating.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(data.operating.net)}</p></div>

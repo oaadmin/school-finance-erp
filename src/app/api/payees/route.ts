@@ -47,3 +47,27 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ id: result.lastInsertRowid }, { status: 201 });
 }
+
+export async function PUT(req: NextRequest) {
+  const db = getDb();
+  const body = await req.json();
+
+  if (!body.id) {
+    return NextResponse.json({ error: 'id is required' }, { status: 400 });
+  }
+
+  db.prepare(`
+    UPDATE payees SET payee_code = ?, name = ?, type = ?, contact_person = ?, email = ?, phone = ?,
+      address = ?, tin = ?, bank_name = ?, bank_account_number = ?, bank_branch = ?,
+      updated_at = datetime('now')
+    WHERE id = ?
+  `).run(
+    body.payee_code, body.name, body.type || 'vendor',
+    body.contact_person || null, body.email || null, body.phone || null,
+    body.address || null, body.tin || null,
+    body.bank_name || null, body.bank_account_number || null, body.bank_branch || null,
+    body.id
+  );
+
+  return NextResponse.json({ id: body.id });
+}

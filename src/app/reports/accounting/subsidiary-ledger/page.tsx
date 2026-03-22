@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { exportToExcel, exportToPDF } from '@/lib/export';
 import ReportFilters from '@/components/reports/ReportFilters';
 
 interface Entry { date: string; reference: string; payee?: string; description: string; debit: number; credit: number; amount?: number; }
@@ -27,7 +28,11 @@ export default function SubsidiaryLedger() {
         <p className="text-sm text-gray-500">Detailed breakdown per vendor/customer</p>
       </div>
 
-      <ReportFilters dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo}>
+      <ReportFilters dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo}
+        onExport={(fmt) => {
+          if (fmt === 'excel') exportToExcel(data.map(e => ({ date: e.date, reference: e.reference, payee: e.payee || e.description, debit: e.debit, credit: e.credit })), `subsidiary-ledger-${ledgerType}`);
+          else exportToPDF(`Subsidiary Ledger - ${ledgerType}`, ['Date', 'Reference', 'Payee/Description', 'Debit', 'Credit'], data.map(e => [formatDate(e.date), e.reference, e.payee || e.description, e.debit > 0 ? formatCurrency(e.debit) : '', e.credit > 0 ? formatCurrency(e.credit) : '']), `subsidiary-ledger-${ledgerType}`);
+        }}>
         <div>
           <label className="text-[10px] text-gray-500 uppercase tracking-wider">Type</label>
           <select className="select-field text-sm" value={ledgerType} onChange={e => setLedgerType(e.target.value)}>

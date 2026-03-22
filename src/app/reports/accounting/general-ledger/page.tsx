@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { exportToExcel, exportToPDF } from '@/lib/export';
 import ReportFilters from '@/components/reports/ReportFilters';
 
 interface GLEntry { entry_date: string; entry_number: string; je_description: string; account_code: string; account_name: string; description: string; debit: number; credit: number; }
@@ -38,7 +39,11 @@ export default function GeneralLedger() {
         <p className="text-sm text-gray-500">Detailed transaction history per account</p>
       </div>
 
-      <ReportFilters dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo}>
+      <ReportFilters dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo}
+        onExport={(fmt) => {
+          if (fmt === 'excel') exportToExcel(data.map(e => ({ date: e.entry_date, ref: e.entry_number, account_code: e.account_code, account_name: e.account_name, description: e.description || e.je_description, debit: e.debit, credit: e.credit })), 'general-ledger');
+          else exportToPDF('General Ledger', ['Date', 'Ref #', 'Account', 'Description', 'Debit', 'Credit'], data.map(e => [formatDate(e.entry_date), e.entry_number, `${e.account_code} ${e.account_name}`, e.description || e.je_description, e.debit > 0 ? formatCurrency(e.debit) : '', e.credit > 0 ? formatCurrency(e.credit) : '']), 'general-ledger');
+        }}>
         <div>
           <label className="text-[10px] text-gray-500 uppercase tracking-wider">Account</label>
           <select className="select-field text-sm" value={selectedAccount} onChange={e => setSelectedAccount(e.target.value)}>

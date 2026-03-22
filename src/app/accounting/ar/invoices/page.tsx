@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
-import { FileText, Plus, Search, Filter, DollarSign, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { FileText, Plus, Search, Filter, DollarSign, AlertCircle, CheckCircle, X, Edit2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface Invoice {
@@ -68,6 +68,7 @@ export default function InvoicesPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     customer_id: '',
@@ -96,26 +97,46 @@ export default function InvoicesPage() {
 
   const netAmount = form.gross_amount - form.discount_amount;
 
-  const handleCreate = async () => {
+  const emptyForm = { customer_id: '', invoice_date: new Date().toISOString().split('T')[0], due_date: '', school_year: '', semester: '', description: '', gross_amount: 0, discount_amount: 0 };
+
+  const openEdit = (inv: Invoice) => {
+    setEditingId(inv.id);
+    setForm({
+      customer_id: String(inv.customer_id || ''), invoice_date: inv.invoice_date || '',
+      due_date: inv.due_date || '', school_year: inv.school_year || '',
+      semester: inv.semester || '', description: inv.description || '',
+      gross_amount: inv.gross_amount || 0, discount_amount: inv.discount_amount || 0,
+    });
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingId(null);
+    setForm(emptyForm);
+  };
+
+  const handleSave = async () => {
     setSubmitting(true);
     try {
-      const res = await fetch('/api/accounting/ar?type=invoices', {
-        method: 'POST',
+      const method = editingId ? 'PUT' : 'POST';
+      const payload = editingId ? { ...form, id: editingId, net_amount: netAmount } : { ...form, net_amount: netAmount };
+      const res = await fetch(`/api/accounting/ar?type=invoices`, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, net_amount: netAmount }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         const data = await res.json();
-        success('Invoice Created', `Invoice ${data.invoice_number || ''} has been created successfully.`);
-        setShowModal(false);
-        setForm({ customer_id: '', invoice_date: new Date().toISOString().split('T')[0], due_date: '', school_year: '', semester: '', description: '', gross_amount: 0, discount_amount: 0 });
+        success(editingId ? 'Invoice Updated' : 'Invoice Created', `Invoice ${data.invoice_number || ''} has been ${editingId ? 'updated' : 'created'} successfully.`);
+        closeModal();
         loadInvoices();
       } else {
         const err = await res.json().catch(() => ({}));
-        error('Creation Failed', err.message || err.error || 'Could not create invoice. Please try again.');
+        error(editingId ? 'Update Failed' : 'Creation Failed', err.message || err.error || 'Could not save invoice. Please try again.');
       }
     } catch (e) {
-      error('Creation Failed', 'Network error. Please try again.');
+      error('Save Failed', 'Network error. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -140,7 +161,7 @@ export default function InvoicesPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AR Invoices / Charges</h1>
           <p className="text-sm text-gray-500 mt-1">{filtered.length} invoices</p>
         </div>
-        <button className="btn-primary text-xs sm:text-sm" onClick={() => setShowModal(true)}>
+        <button className="btn-primary text-xs sm:text-sm" onClick={() => { setEditingId(null); setShowModal(true); }}>
           <Plus size={16} /> New Invoice
         </button>
       </div>
@@ -213,6 +234,7 @@ export default function InvoicesPage() {
                 <th className="text-right hidden md:table-cell">Paid</th>
                 <th className="text-right">Balance</th>
                 <th>Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -240,6 +262,13 @@ export default function InvoicesPage() {
                       {invoiceStatusLabel(inv.status)}
                     </span>
                   </td>
+                  <td>
+                    {(inv.status === 'draft' || inv.status === 'posted') && (
+                      <button onClick={() => openEdit(inv)} className="p-1 text-gray-400 hover:text-primary-600" title="Edit">
+                        <Edit2 size={14} />
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
@@ -255,8 +284,8 @@ export default function InvoicesPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b flex items-center justify-between">
-              <h2 className="text-lg font-bold">New Invoice</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              <h2 className="text-lg font-bold">{editingId ? 'Edit Invoice' : 'New Invoice'}</h2>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
             <div className="p-6 space-y-4">
               <div>
@@ -322,9 +351,9 @@ export default function InvoicesPage() {
               </div>
             </div>
             <div className="p-6 border-t flex justify-end gap-3">
-              <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="btn-primary" onClick={handleCreate} disabled={submitting || !form.customer_id || !form.gross_amount}>
-                <Plus size={16} /> {submitting ? 'Saving...' : 'Create Invoice'}
+              <button className="btn-secondary" onClick={closeModal}>Cancel</button>
+              <button className="btn-primary" onClick={handleSave} disabled={submitting || !form.customer_id || !form.gross_amount}>
+                <Plus size={16} /> {submitting ? 'Saving...' : (editingId ? 'Update Invoice' : 'Create Invoice')}
               </button>
             </div>
           </div>

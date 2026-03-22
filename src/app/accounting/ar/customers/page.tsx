@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { formatCurrency } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
-import { Plus, Search, Filter, Users, X } from 'lucide-react';
+import { Plus, Search, Filter, Users, X, Edit2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface Customer {
@@ -52,6 +52,7 @@ export default function CustomersPage() {
   const [typeFilter, setTypeFilter] = useState('');
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     customer_code: '',
@@ -72,25 +73,44 @@ export default function CustomersPage() {
 
   useEffect(loadCustomers, [typeFilter]);
 
-  const handleCreate = async () => {
+  const emptyForm = { customer_code: '', customer_type: 'student', name: '', campus: '', grade_level: '', email: '', phone: '', billing_address: '' };
+
+  const openEdit = (c: Customer) => {
+    setEditingId(c.id);
+    setForm({
+      customer_code: c.customer_code || '', customer_type: c.customer_type || 'student',
+      name: c.name || '', campus: c.campus || '', grade_level: c.grade_level || '',
+      email: c.email || '', phone: c.phone || '', billing_address: '',
+    });
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingId(null);
+    setForm(emptyForm);
+  };
+
+  const handleSave = async () => {
     setSubmitting(true);
     try {
-      const res = await fetch('/api/accounting/ar?type=customers', {
-        method: 'POST',
+      const method = editingId ? 'PUT' : 'POST';
+      const payload = editingId ? { ...form, id: editingId } : form;
+      const res = await fetch(`/api/accounting/ar?type=customers`, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
-        success('Customer Created', `Customer "${form.name}" has been added successfully.`);
-        setShowModal(false);
-        setForm({ customer_code: '', customer_type: 'student', name: '', campus: '', grade_level: '', email: '', phone: '', billing_address: '' });
+        success(editingId ? 'Customer Updated' : 'Customer Created', `Customer "${form.name}" has been ${editingId ? 'updated' : 'added'} successfully.`);
+        closeModal();
         loadCustomers();
       } else {
         const err = await res.json().catch(() => ({}));
-        error('Creation Failed', err.message || err.error || 'Could not create customer. Please try again.');
+        error(editingId ? 'Update Failed' : 'Creation Failed', err.message || err.error || 'Could not save customer. Please try again.');
       }
     } catch (e) {
-      error('Creation Failed', 'Network error. Please try again.');
+      error('Save Failed', 'Network error. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -111,7 +131,7 @@ export default function CustomersPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Customers / Student Accounts</h1>
           <p className="text-sm text-gray-500 mt-1">{filtered.length} customers</p>
         </div>
-        <button className="btn-primary text-xs sm:text-sm" onClick={() => setShowModal(true)}>
+        <button className="btn-primary text-xs sm:text-sm" onClick={() => { setEditingId(null); setShowModal(true); }}>
           <Plus size={16} /> Add Customer
         </button>
       </div>
@@ -144,6 +164,7 @@ export default function CustomersPage() {
                 <th className="text-right hidden md:table-cell">Total Paid</th>
                 <th className="text-right">Balance</th>
                 <th>Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -173,6 +194,11 @@ export default function CustomersPage() {
                       {c.status || 'active'}
                     </span>
                   </td>
+                  <td>
+                    <button onClick={() => openEdit(c)} className="p-1 text-gray-400 hover:text-primary-600" title="Edit">
+                      <Edit2 size={14} />
+                    </button>
+                  </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
@@ -188,8 +214,8 @@ export default function CustomersPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b flex items-center justify-between">
-              <h2 className="text-lg font-bold">Add Customer</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              <h2 className="text-lg font-bold">{editingId ? 'Edit Customer' : 'Add Customer'}</h2>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -243,9 +269,9 @@ export default function CustomersPage() {
               </div>
             </div>
             <div className="p-6 border-t flex justify-end gap-3">
-              <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="btn-primary" onClick={handleCreate} disabled={submitting || !form.name || !form.customer_code}>
-                <Plus size={16} /> {submitting ? 'Saving...' : 'Add Customer'}
+              <button className="btn-secondary" onClick={closeModal}>Cancel</button>
+              <button className="btn-primary" onClick={handleSave} disabled={submitting || !form.name || !form.customer_code}>
+                <Plus size={16} /> {submitting ? 'Saving...' : (editingId ? 'Update Customer' : 'Add Customer')}
               </button>
             </div>
           </div>

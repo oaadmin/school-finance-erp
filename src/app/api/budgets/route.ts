@@ -62,3 +62,28 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ id: result.lastInsertRowid }, { status: 201 });
 }
+
+export async function PUT(req: NextRequest) {
+  const db = getDb();
+  const body = await req.json();
+
+  if (!body.id) {
+    return NextResponse.json({ error: 'id is required' }, { status: 400 });
+  }
+
+  db.prepare(`
+    UPDATE budgets SET budget_name = ?, school_year = ?, department_id = ?, category_id = ?,
+      cost_center_id = ?, fund_source_id = ?, project = ?, campus = ?,
+      annual_budget = ?, budget_owner = ?, status = ?, notes = ?,
+      updated_at = datetime('now')
+    WHERE id = ?
+  `).run(
+    body.budget_name, body.school_year, body.department_id, body.category_id,
+    body.cost_center_id || null, body.fund_source_id || null,
+    body.project || null, body.campus || 'Main',
+    body.annual_budget, body.budget_owner || null, body.status || 'draft', body.notes || null,
+    body.id
+  );
+
+  return NextResponse.json({ id: body.id });
+}

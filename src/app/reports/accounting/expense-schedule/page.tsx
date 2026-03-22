@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency } from '@/lib/utils';
+import { exportToExcel, exportToPDF } from '@/lib/export';
 import ReportFilters from '@/components/reports/ReportFilters';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
@@ -29,7 +30,11 @@ export default function ExpenseSchedule() {
         <p className="text-sm text-gray-500">Breakdown of expenses by category</p>
       </div>
 
-      <ReportFilters dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
+      <ReportFilters dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo}
+        onExport={(fmt) => {
+          if (fmt === 'excel') exportToExcel(data, 'expense-schedule');
+          else exportToPDF('Schedule of Expenses', ['Account Code', 'Expense Category', 'Amount', '% of Total'], data.map(r => [r.account_code, r.account_name, formatCurrency(r.amount), `${r.percentage}%`]), 'expense-schedule');
+        }} />
 
       <div className="stat-card !p-4">
         <p className="text-xs text-gray-500">Total Expenses</p>

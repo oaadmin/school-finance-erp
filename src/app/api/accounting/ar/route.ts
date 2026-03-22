@@ -308,3 +308,58 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to create AR record' }, { status: 500 });
   }
 }
+
+export async function PUT(req: NextRequest) {
+  try {
+    const db = getDb();
+    const type = req.nextUrl.searchParams.get('type') || 'invoices';
+    const body = await req.json();
+
+    if (!body.id) {
+      return NextResponse.json({ error: 'id is required' }, { status: 400 });
+    }
+
+    if (type === 'customers') {
+      db.prepare(`
+        UPDATE customers SET customer_code = ?, customer_type = ?, name = ?, campus = ?, grade_level = ?,
+          contact_person = ?, email = ?, phone = ?, billing_address = ?, tin = ?,
+          updated_at = datetime('now')
+        WHERE id = ?
+      `).run(
+        body.customer_code, body.customer_type || 'student', body.name,
+        body.campus || 'Main', body.grade_level || null,
+        body.contact_person || null, body.email || null, body.phone || null,
+        body.billing_address || null, body.tin || null,
+        body.id
+      );
+      return NextResponse.json({ id: body.id });
+    }
+
+    if (type === 'invoices') {
+      const grossAmount = body.gross_amount || 0;
+      const discountAmount = body.discount_amount || 0;
+      const taxAmount = body.tax_amount || 0;
+      const netReceivable = grossAmount - discountAmount + taxAmount;
+
+      db.prepare(`
+        UPDATE ar_invoices SET invoice_date = ?, due_date = ?, customer_id = ?,
+          school_year = ?, semester = ?, description = ?,
+          gross_amount = ?, discount_amount = ?, tax_amount = ?, net_receivable = ?,
+          balance = net_receivable - amount_paid,
+          updated_at = datetime('now')
+        WHERE id = ?
+      `).run(
+        body.invoice_date || null, body.due_date || null, body.customer_id || null,
+        body.school_year || null, body.semester || null, body.description || null,
+        grossAmount, discountAmount, taxAmount, netReceivable,
+        body.id
+      );
+      return NextResponse.json({ id: body.id });
+    }
+
+    return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 });
+  } catch (error) {
+    console.error('AR PUT error:', error);
+    return NextResponse.json({ error: 'Failed to update AR record' }, { status: 500 });
+  }
+}

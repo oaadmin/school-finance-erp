@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency } from '@/lib/utils';
+import { exportToExcel, exportToPDF } from '@/lib/export';
 import ReportFilters from '@/components/reports/ReportFilters';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
@@ -44,7 +45,12 @@ export default function TaxSummary() {
         <p className="text-sm text-gray-500">VAT and Withholding Tax summaries for BIR filing</p>
       </div>
 
-      <ReportFilters dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
+      <ReportFilters dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo}
+        onExport={(fmt) => {
+          const vatRows = vatData.monthly.map(m => ({ month: MONTHS_LABEL[m.month] || m.month, output_vat: m.output_vat, input_vat: m.input_vat, net_vat: m.output_vat - m.input_vat }));
+          if (fmt === 'excel') exportToExcel(vatRows, 'tax-summary');
+          else exportToPDF('Tax Summary - VAT', ['Month', 'Output VAT', 'Input VAT', 'Net VAT'], vatRows.map(r => [r.month, formatCurrency(r.output_vat), formatCurrency(r.input_vat), formatCurrency(r.net_vat)]), 'tax-summary');
+        }} />
 
       {/* Tabs */}
       <div className="flex border-b border-gray-200">

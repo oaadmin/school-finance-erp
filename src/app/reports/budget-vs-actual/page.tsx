@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency, getVarianceStatus } from '@/lib/utils';
+import { exportToExcel, exportToPDF } from '@/lib/export';
 import { Download, Filter } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from 'recharts';
 
@@ -51,8 +52,8 @@ export default function BudgetVsActualReport() {
           <p className="text-sm text-gray-500 mt-1">Compare allocated budgets against actual spending</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button className="btn-secondary text-xs sm:text-sm"><Download size={16} /> Export PDF</button>
-          <button className="btn-secondary text-xs sm:text-sm"><Download size={16} /> Export Excel</button>
+          <button className="btn-secondary text-xs sm:text-sm" onClick={() => exportToPDF('Budget vs Actual Report', ['Budget', 'Department', 'Category', 'Budget', 'Committed', 'Actual', 'Variance', 'Utilization'], data.map(r => [r.budget_name, r.department, r.category, formatCurrency(r.budget), formatCurrency(r.committed), formatCurrency(r.actual), formatCurrency(r.variance), `${r.utilization_pct}%`]), 'budget-vs-actual')}><Download size={16} /> Export PDF</button>
+          <button className="btn-secondary text-xs sm:text-sm" onClick={() => exportToExcel(data.map(r => ({ budget_name: r.budget_name, department: r.department, category: r.category, budget: r.budget, committed: r.committed, actual: r.actual, variance: r.variance, utilization_pct: r.utilization_pct })), 'budget-vs-actual')}><Download size={16} /> Export Excel</button>
         </div>
       </div>
 

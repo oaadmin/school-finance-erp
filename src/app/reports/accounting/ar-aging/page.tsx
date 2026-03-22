@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency } from '@/lib/utils';
+import { exportToExcel, exportToPDF } from '@/lib/export';
 import ReportFilters from '@/components/reports/ReportFilters';
 
 interface ARRow { description: string; total: number; }
@@ -25,7 +26,11 @@ export default function ARAging() {
         <p className="text-sm text-gray-500">Outstanding receivables summary</p>
       </div>
 
-      <ReportFilters dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
+      <ReportFilters dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo}
+        onExport={(fmt) => {
+          if (fmt === 'excel') exportToExcel(data, 'ar-aging');
+          else exportToPDF('Accounts Receivable Aging', ['Account', 'Balance'], data.map(r => [r.description, formatCurrency(r.total)]), 'ar-aging');
+        }} />
 
       <div className="stat-card !p-4">
         <p className="text-xs text-gray-500">Total Accounts Receivable</p>

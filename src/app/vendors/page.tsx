@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { formatCurrency } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
-import { Users, Plus, Search, X, Save, Building2, User } from 'lucide-react';
+import { Users, Plus, Search, X, Save, Building2, User, Edit2 } from 'lucide-react';
 
 interface Payee {
   id: number; payee_code: string; name: string; type: string; contact_person: string;
@@ -18,6 +18,7 @@ export default function VendorManagement() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({
     payee_code: '', name: '', type: 'vendor', contact_person: '',
     email: '', phone: '', address: '', tin: '',
@@ -33,24 +34,42 @@ export default function VendorManagement() {
 
   useEffect(loadData, [typeFilter, search]);
 
-  const handleCreate = async () => {
+  const openEdit = (p: Payee) => {
+    setEditingId(p.id);
+    setForm({
+      payee_code: p.payee_code || '', name: p.name || '', type: p.type || 'vendor',
+      contact_person: p.contact_person || '', email: p.email || '', phone: p.phone || '',
+      address: p.address || '', tin: p.tin || '',
+      bank_name: p.bank_name || '', bank_account_number: p.bank_account_number || '', bank_branch: '',
+    });
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingId(null);
+    setForm({ payee_code: '', name: '', type: 'vendor', contact_person: '', email: '', phone: '', address: '', tin: '', bank_name: '', bank_account_number: '', bank_branch: '' });
+  };
+
+  const handleSave = async () => {
     try {
+      const method = editingId ? 'PUT' : 'POST';
+      const payload = editingId ? { ...form, id: editingId } : form;
       const res = await fetch('/api/payees', {
-        method: 'POST',
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
-        success('Payee Created', `Payee "${form.name}" has been added successfully.`);
-        setShowModal(false);
-        setForm({ payee_code: '', name: '', type: 'vendor', contact_person: '', email: '', phone: '', address: '', tin: '', bank_name: '', bank_account_number: '', bank_branch: '' });
+        success(editingId ? 'Payee Updated' : 'Payee Created', `Payee "${form.name}" has been ${editingId ? 'updated' : 'added'} successfully.`);
+        closeModal();
         loadData();
       } else {
         const err = await res.json().catch(() => ({}));
-        error('Creation Failed', err.message || err.error || 'Could not create payee. Please try again.');
+        error(editingId ? 'Update Failed' : 'Creation Failed', err.message || err.error || 'Could not save payee. Please try again.');
       }
     } catch (e) {
-      error('Creation Failed', 'Network error. Please try again.');
+      error('Save Failed', 'Network error. Please try again.');
     }
   };
 
@@ -61,7 +80,7 @@ export default function VendorManagement() {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Vendor / Payee Management</h1>
           <p className="text-sm text-gray-500 mt-1">Manage vendors, suppliers, and employee payees</p>
         </div>
-        <button className="btn-primary text-xs sm:text-sm" onClick={() => setShowModal(true)}><Plus size={16} /> Add Payee</button>
+        <button className="btn-primary text-xs sm:text-sm" onClick={() => { setEditingId(null); setShowModal(true); }}><Plus size={16} /> Add Payee</button>
       </div>
 
       <div className="card">
@@ -84,7 +103,7 @@ export default function VendorManagement() {
               <tr>
                 <th>Code</th><th>Name</th><th>Type</th><th>Contact</th><th>TIN</th>
                 <th>Bank</th><th className="text-right">Total Paid</th>
-                <th className="text-right">Outstanding</th><th>Status</th>
+                <th className="text-right">Outstanding</th><th>Status</th><th></th>
               </tr>
             </thead>
             <tbody>
@@ -118,6 +137,11 @@ export default function VendorManagement() {
                       {p.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
+                  <td>
+                    <button onClick={() => openEdit(p)} className="p-1 text-gray-400 hover:text-primary-600" title="Edit">
+                      <Edit2 size={14} />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -129,8 +153,8 @@ export default function VendorManagement() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b flex items-center justify-between">
-              <h2 className="text-lg font-bold">Add New Payee</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              <h2 className="text-lg font-bold">{editingId ? 'Edit Payee' : 'Add New Payee'}</h2>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -151,8 +175,8 @@ export default function VendorManagement() {
               </div>
             </div>
             <div className="p-6 border-t flex justify-end gap-3">
-              <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="btn-primary" onClick={handleCreate}><Save size={16} /> Save Payee</button>
+              <button className="btn-secondary" onClick={closeModal}>Cancel</button>
+              <button className="btn-primary" onClick={handleSave}><Save size={16} /> {editingId ? 'Update Payee' : 'Save Payee'}</button>
             </div>
           </div>
         </div>

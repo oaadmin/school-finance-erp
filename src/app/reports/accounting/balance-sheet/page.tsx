@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency } from '@/lib/utils';
+import { exportToExcel, exportToPDF } from '@/lib/export';
 import ReportFilters from '@/components/reports/ReportFilters';
 
 interface Account { account_code: string; account_name: string; current_balance: number; previous_balance: number; }
@@ -66,8 +67,8 @@ export default function BalanceSheet() {
             <input type="date" className="input-field text-sm" value={dateTo} onChange={e => setDateTo(e.target.value)} />
           </div>
           <div className="ml-auto flex gap-2">
-            <button className="btn-secondary text-xs">Excel</button>
-            <button className="btn-secondary text-xs">PDF</button>
+            <button className="btn-secondary text-xs" onClick={() => exportToExcel([...assets, ...liabilities, ...equity].map(a => ({ account_code: a.account_code, account_name: a.account_name, current_balance: a.current_balance, previous_balance: a.previous_balance, variance: a.current_balance - a.previous_balance })), 'balance-sheet')}>Excel</button>
+            <button className="btn-secondary text-xs" onClick={() => exportToPDF('Balance Sheet', ['Account Code', 'Account Name', 'Current', 'Previous', 'Variance'], [...assets, ...liabilities, ...equity].map(a => [a.account_code, a.account_name, formatCurrency(a.current_balance), formatCurrency(a.previous_balance), formatCurrency(a.current_balance - a.previous_balance)]), 'balance-sheet')}>PDF</button>
           </div>
         </div>
       </div>
