@@ -18,10 +18,10 @@ interface BreakdownItem {
 }
 
 interface BIR1601EData {
-  totalWithheld: number;
-  breakdown: BreakdownItem[];
-  month: string;
-  vendorCount: number;
+  total_taxes_withheld: number;
+  breakdown_by_nature: BreakdownItem[];
+  form?: string;
+  period?: { month?: string; from?: string; to?: string };
 }
 
 // ---------------------------------------------------------------------------
@@ -92,7 +92,7 @@ export default function BIR1601EPage() {
     ).then(results => {
       const trend = results.map((res, i) => ({
         month: months[i],
-        amount: res?.totalWithheld ?? 0,
+        amount: res?.total_taxes_withheld ?? 0,
       }));
       setYearlyData(trend);
     });
@@ -100,7 +100,7 @@ export default function BIR1601EPage() {
 
   const taxCredits = 0;
   const penalties = 0;
-  const netTaxDue = (data?.totalWithheld ?? 0) - taxCredits;
+  const netTaxDue = (data?.total_taxes_withheld ?? 0) - taxCredits;
   const totalAmountDue = netTaxDue + penalties;
 
   function handlePrint() {
@@ -109,7 +109,7 @@ export default function BIR1601EPage() {
 
   function handleExport() {
     if (!data) return;
-    const rows = data.breakdown.map(b => ({
+    const rows = (data.breakdown_by_nature || []).map(b => ({
       'Nature of Payment': b.nature,
       'ATC': b.atc,
       'Tax Base': b.tax_base,
@@ -165,7 +165,7 @@ export default function BIR1601EPage() {
               <div className="ml-auto">
                 <span className="badge bg-blue-100 text-blue-700">
                   <Users size={12} className="inline mr-1" />
-                  {data.vendorCount} vendor{data.vendorCount !== 1 ? 's' : ''}
+                  {(data.breakdown_by_nature || []).length} ATC code{(data.breakdown_by_nature || []).length !== 1 ? 's' : ''}
                 </span>
               </div>
             )}
@@ -198,7 +198,7 @@ export default function BIR1601EPage() {
                         Total Taxes Withheld for the Month
                       </td>
                       <td className="border border-gray-200 px-4 py-3 text-right font-bold text-lg">
-                        {formatCurrency(data.totalWithheld)}
+                        {formatCurrency(data.total_taxes_withheld ?? 0)}
                       </td>
                     </tr>
                     <tr>
@@ -246,16 +246,16 @@ export default function BIR1601EPage() {
                 <DollarSign size={16} className="text-blue-500" />
                 <p className="text-xs text-gray-500">Total Tax Withheld</p>
               </div>
-              <p className="text-lg font-bold text-gray-900 mt-1">{formatCurrency(data.totalWithheld)}</p>
+              <p className="text-lg font-bold text-gray-900 mt-1">{formatCurrency(data.total_taxes_withheld ?? 0)}</p>
               <p className="text-[11px] text-gray-400 mt-0.5">{getMonthLabel(month)}</p>
             </div>
             <div className="stat-card !p-4">
               <div className="flex items-center gap-2">
                 <Users size={16} className="text-purple-500" />
-                <p className="text-xs text-gray-500">Vendors / Payees</p>
+                <p className="text-xs text-gray-500">ATC Entries</p>
               </div>
-              <p className="text-lg font-bold text-purple-600 mt-1">{data.vendorCount}</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">with EWT transactions</p>
+              <p className="text-lg font-bold text-purple-600 mt-1">{(data.breakdown_by_nature || []).length}</p>
+              <p className="text-[11px] text-gray-400 mt-0.5">breakdown items</p>
             </div>
             <div className="stat-card !p-4">
               <div className="flex items-center gap-2">
@@ -263,7 +263,7 @@ export default function BIR1601EPage() {
                 <p className="text-xs text-gray-500">ATC Codes Used</p>
               </div>
               <p className="text-lg font-bold text-orange-600 mt-1">
-                {new Set(data.breakdown.map(b => b.atc)).size}
+                {new Set((data.breakdown_by_nature || []).map(b => b.atc)).size}
               </p>
               <p className="text-[11px] text-gray-400 mt-0.5">distinct tax types</p>
             </div>
@@ -286,14 +286,14 @@ export default function BIR1601EPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.breakdown.length === 0 ? (
+                  {(data.breakdown_by_nature || []).length === 0 ? (
                     <tr>
                       <td colSpan={5} className="text-center text-gray-400 py-8">
                         No withholding tax transactions for this period
                       </td>
                     </tr>
                   ) : (
-                    data.breakdown.map((item, i) => (
+                    (data.breakdown_by_nature || []).map((item, i) => (
                       <tr key={i}>
                         <td className="font-mono text-xs">
                           <span className="badge bg-gray-100 text-gray-700">{item.atc}</span>
@@ -306,16 +306,16 @@ export default function BIR1601EPage() {
                     ))
                   )}
                 </tbody>
-                {data.breakdown.length > 0 && (
+                {(data.breakdown_by_nature || []).length > 0 && (
                   <tfoot>
                     <tr className="bg-gray-50 font-bold">
                       <td colSpan={2} className="px-4 py-3">Total</td>
                       <td className="text-right px-4 py-3">
-                        {formatCurrency(data.breakdown.reduce((s, b) => s + b.tax_base, 0))}
+                        {formatCurrency((data.breakdown_by_nature || []).reduce((s, b) => s + (b.tax_base ?? 0), 0))}
                       </td>
                       <td className="px-4 py-3"></td>
                       <td className="text-right px-4 py-3 text-red-600">
-                        {formatCurrency(data.totalWithheld)}
+                        {formatCurrency(data.total_taxes_withheld ?? 0)}
                       </td>
                     </tr>
                   </tfoot>

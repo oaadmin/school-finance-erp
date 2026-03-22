@@ -19,10 +19,11 @@ interface QAPRow {
 }
 
 interface QAPData {
-  data: QAPRow[];
-  totals: { total_income: number; total_tax: number };
-  quarter: string;
-  year: number;
+  payees: QAPRow[];
+  total_income: number;
+  total_tax: number;
+  form?: string;
+  period?: Record<string, unknown>;
 }
 
 interface SAWTRow {
@@ -34,10 +35,11 @@ interface SAWTRow {
 }
 
 interface SAWTData {
-  data: SAWTRow[];
-  totals: { total_base: number; total_tax: number };
-  quarter: string;
-  year: number;
+  summary: SAWTRow[];
+  total_base: number;
+  total_tax: number;
+  form?: string;
+  period?: Record<string, unknown>;
 }
 
 // ---------------------------------------------------------------------------
@@ -94,7 +96,7 @@ export default function AlphalistPage() {
 
   function handleExportQAPExcel() {
     if (!qapData) return;
-    const rows = qapData.data.map(r => ({
+    const rows = (qapData.payees || []).map(r => ({
       'Seq No': r.seq_no,
       'TIN': r.tin,
       'Registered Name': r.vendor_name,
@@ -108,8 +110,8 @@ export default function AlphalistPage() {
   function handleExportQAPCSV() {
     if (!qapData) return;
     const header = 'SEQ,TIN,NAME,ATC,INCOME,TAX';
-    const lines = qapData.data.map(r =>
-      `${r.seq_no},${r.tin},"${r.vendor_name}",${r.atc},${r.income_payment.toFixed(2)},${r.tax_withheld.toFixed(2)}`
+    const lines = (qapData.payees || []).map(r =>
+      `${r.seq_no},${r.tin},"${r.vendor_name}",${r.atc},${(r.income_payment ?? 0).toFixed(2)},${(r.tax_withheld ?? 0).toFixed(2)}`
     );
     const csv = [header, ...lines].join('\n');
     downloadFile(csv, `QAP_${quarter}_${year}.csv`, 'text/csv');
@@ -118,20 +120,21 @@ export default function AlphalistPage() {
   function handleExportQAPDAT() {
     if (!qapData) return;
     // BIR DAT format: pipe-delimited
-    const lines = qapData.data.map(r =>
-      `D${r.atc}|${r.tin}|${r.vendor_name}|${r.income_payment.toFixed(2)}|${r.tax_withheld.toFixed(2)}`
+    const payees = qapData.payees || [];
+    const lines = payees.map(r =>
+      `D${r.atc}|${r.tin}|${r.vendor_name}|${(r.income_payment ?? 0).toFixed(2)}|${(r.tax_withheld ?? 0).toFixed(2)}`
     );
     // Add control record
-    const totalIncome = qapData.totals.total_income.toFixed(2);
-    const totalTax = qapData.totals.total_tax.toFixed(2);
-    const control = `C${qapData.data.length}|${totalIncome}|${totalTax}`;
+    const totalIncome = (qapData.total_income || 0).toFixed(2);
+    const totalTax = (qapData.total_tax || 0).toFixed(2);
+    const control = `C${payees.length}|${totalIncome}|${totalTax}`;
     const dat = [...lines, control].join('\r\n');
     downloadFile(dat, `QAP_${quarter}_${year}.dat`, 'application/octet-stream');
   }
 
   function handleExportSAWT() {
     if (!sawtData) return;
-    const rows = sawtData.data.map(r => ({
+    const rows = (sawtData.summary || []).map(r => ({
       'ATC': r.atc,
       'Description': r.description,
       'Tax Base': r.tax_base,
@@ -232,7 +235,7 @@ export default function AlphalistPage() {
           <Users size={14} className="inline mr-1" />
           QAP - Alphalist of Payees
           {qapData && (
-            <span className="badge bg-blue-100 text-blue-700 ml-2 text-[10px]">{qapData.data.length}</span>
+            <span className="badge bg-blue-100 text-blue-700 ml-2 text-[10px]">{(qapData.payees || []).length}</span>
           )}
         </button>
         <button
@@ -242,7 +245,7 @@ export default function AlphalistPage() {
           <FileText size={14} className="inline mr-1" />
           SAWT - Summary
           {sawtData && (
-            <span className="badge bg-purple-100 text-purple-700 ml-2 text-[10px]">{sawtData.data.length}</span>
+            <span className="badge bg-purple-100 text-purple-700 ml-2 text-[10px]">{(sawtData.summary || []).length}</span>
           )}
         </button>
       </div>
@@ -257,21 +260,21 @@ export default function AlphalistPage() {
                 <Users size={16} className="text-blue-500" />
                 <p className="text-xs text-gray-500">Total Payees</p>
               </div>
-              <p className="text-lg font-bold text-gray-900 mt-1">{qapData.data.length}</p>
+              <p className="text-lg font-bold text-gray-900 mt-1">{(qapData.payees || []).length}</p>
             </div>
             <div className="stat-card !p-4">
               <div className="flex items-center gap-2">
                 <Hash size={16} className="text-green-500" />
                 <p className="text-xs text-gray-500">Total Income Payments</p>
               </div>
-              <p className="text-lg font-bold text-green-600 mt-1">{formatCurrency(qapData.totals.total_income)}</p>
+              <p className="text-lg font-bold text-green-600 mt-1">{formatCurrency(qapData.total_income || 0)}</p>
             </div>
             <div className="stat-card !p-4 border-2 border-red-200">
               <div className="flex items-center gap-2">
                 <Hash size={16} className="text-red-500" />
                 <p className="text-xs text-gray-500">Total Tax Withheld</p>
               </div>
-              <p className="text-lg font-bold text-red-600 mt-1">{formatCurrency(qapData.totals.total_tax)}</p>
+              <p className="text-lg font-bold text-red-600 mt-1">{formatCurrency(qapData.total_tax || 0)}</p>
             </div>
           </div>
 
@@ -308,14 +311,14 @@ export default function AlphalistPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {qapData.data.length === 0 ? (
+                  {(qapData.payees || []).length === 0 ? (
                     <tr>
                       <td colSpan={6} className="text-center text-gray-400 py-8">
                         No payee records for this quarter
                       </td>
                     </tr>
                   ) : (
-                    qapData.data.map((row, i) => (
+                    (qapData.payees || []).map((row, i) => (
                       <tr key={i}>
                         <td className="text-center text-gray-500">{row.seq_no}</td>
                         <td className="font-mono text-xs">{row.tin}</td>
@@ -329,12 +332,12 @@ export default function AlphalistPage() {
                     ))
                   )}
                 </tbody>
-                {qapData.data.length > 0 && (
+                {(qapData.payees || []).length > 0 && (
                   <tfoot>
                     <tr className="bg-gray-50 font-bold">
                       <td colSpan={4} className="px-4 py-3 text-right">TOTALS</td>
-                      <td className="text-right px-4 py-3">{formatCurrency(qapData.totals.total_income)}</td>
-                      <td className="text-right px-4 py-3 text-red-600">{formatCurrency(qapData.totals.total_tax)}</td>
+                      <td className="text-right px-4 py-3">{formatCurrency(qapData.total_income || 0)}</td>
+                      <td className="text-right px-4 py-3 text-red-600">{formatCurrency(qapData.total_tax || 0)}</td>
                     </tr>
                   </tfoot>
                 )}
@@ -354,21 +357,21 @@ export default function AlphalistPage() {
                 <FileText size={16} className="text-purple-500" />
                 <p className="text-xs text-gray-500">ATC Codes</p>
               </div>
-              <p className="text-lg font-bold text-purple-600 mt-1">{sawtData.data.length}</p>
+              <p className="text-lg font-bold text-purple-600 mt-1">{(sawtData.summary || []).length}</p>
             </div>
             <div className="stat-card !p-4">
               <div className="flex items-center gap-2">
                 <Hash size={16} className="text-green-500" />
                 <p className="text-xs text-gray-500">Total Tax Base</p>
               </div>
-              <p className="text-lg font-bold text-green-600 mt-1">{formatCurrency(sawtData.totals.total_base)}</p>
+              <p className="text-lg font-bold text-green-600 mt-1">{formatCurrency(sawtData.total_base || 0)}</p>
             </div>
             <div className="stat-card !p-4 border-2 border-red-200">
               <div className="flex items-center gap-2">
                 <Hash size={16} className="text-red-500" />
                 <p className="text-xs text-gray-500">Total Tax Withheld</p>
               </div>
-              <p className="text-lg font-bold text-red-600 mt-1">{formatCurrency(sawtData.totals.total_tax)}</p>
+              <p className="text-lg font-bold text-red-600 mt-1">{formatCurrency(sawtData.total_tax || 0)}</p>
             </div>
           </div>
 
@@ -396,14 +399,14 @@ export default function AlphalistPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sawtData.data.length === 0 ? (
+                  {(sawtData.summary || []).length === 0 ? (
                     <tr>
                       <td colSpan={5} className="text-center text-gray-400 py-8">
                         No SAWT records for this quarter
                       </td>
                     </tr>
                   ) : (
-                    sawtData.data.map((row, i) => (
+                    (sawtData.summary || []).map((row, i) => (
                       <tr key={i}>
                         <td>
                           <span className="badge bg-purple-100 text-purple-700 font-mono text-xs">{row.atc}</span>
@@ -416,13 +419,13 @@ export default function AlphalistPage() {
                     ))
                   )}
                 </tbody>
-                {sawtData.data.length > 0 && (
+                {(sawtData.summary || []).length > 0 && (
                   <tfoot>
                     <tr className="bg-gray-50 font-bold">
                       <td colSpan={2} className="px-4 py-3">TOTALS</td>
-                      <td className="text-right px-4 py-3">{formatCurrency(sawtData.totals.total_base)}</td>
+                      <td className="text-right px-4 py-3">{formatCurrency(sawtData.total_base || 0)}</td>
                       <td className="px-4 py-3"></td>
-                      <td className="text-right px-4 py-3 text-red-600">{formatCurrency(sawtData.totals.total_tax)}</td>
+                      <td className="text-right px-4 py-3 text-red-600">{formatCurrency(sawtData.total_tax || 0)}</td>
                     </tr>
                   </tfoot>
                 )}

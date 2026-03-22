@@ -8,12 +8,17 @@ interface Payment {
   id: number;
   voucher_number: string;
   payment_date: string;
-  payee: string;
-  amount: number;
-  check_number?: string;
+  payee_name: string;
+  gross_amount: number;
+  net_amount?: number;
+  withholding_tax?: number;
+  check_number?: string | null;
   status: string;
+  disbursement_description?: string;
   description?: string;
   payment_method: string;
+  bank_account?: string;
+  reference_number?: string;
 }
 
 interface CheckPrintRecord {
@@ -139,7 +144,7 @@ export default function CheckWriter() {
 
   const openCheckPreview = (payment: Payment) => {
     setSelectedPayment(payment);
-    setCheckNumber(payment.check_number || '');
+    setCheckNumber(payment.check_number ?? '');
     setShowModal(true);
   };
 
@@ -149,8 +154,8 @@ export default function CheckWriter() {
     const record: CheckPrintRecord = {
       id: Date.now(),
       voucher_number: selectedPayment.voucher_number,
-      payee: selectedPayment.payee,
-      amount: selectedPayment.amount,
+      payee: selectedPayment.payee_name || '',
+      amount: selectedPayment.net_amount ?? selectedPayment.gross_amount ?? 0,
       check_number: checkNumber,
       bank: selectedBank,
       printed_at: new Date().toISOString(),
@@ -341,7 +346,7 @@ export default function CheckWriter() {
             <div>
               <p className="text-xs text-gray-500">Total Amount</p>
               <p className="text-lg font-bold text-gray-900">
-                {formatCurrency(payments.reduce((s, p) => s + (p.amount || 0), 0))}
+                {formatCurrency(payments.reduce((s, p) => s + (p.net_amount ?? p.gross_amount ?? 0), 0))}
               </p>
             </div>
           </div>
@@ -386,9 +391,9 @@ export default function CheckWriter() {
                     <tr key={payment.id}>
                       <td className="font-mono text-xs">{payment.voucher_number}</td>
                       <td className="whitespace-nowrap">{payment.payment_date}</td>
-                      <td className="font-medium">{payment.payee}</td>
-                      <td className="text-right font-mono">{formatCurrency(payment.amount)}</td>
-                      <td className="font-mono text-xs">{payment.check_number || '-'}</td>
+                      <td className="font-medium">{payment.payee_name || ''}</td>
+                      <td className="text-right font-mono">{formatCurrency(payment.net_amount ?? payment.gross_amount ?? 0)}</td>
+                      <td className="font-mono text-xs">{payment.check_number ?? '-'}</td>
                       <td>
                         <span className={`badge text-xs ${getStatusColor(payment.status)}`}>
                           {getStatusLabel(payment.status)}
@@ -575,7 +580,7 @@ export default function CheckWriter() {
                         display: 'inline-block',
                         minWidth: '400px',
                       }}>
-                        {selectedPayment.payee}
+                        {selectedPayment.payee_name || ''}
                       </span>
                     </div>
 
@@ -591,7 +596,7 @@ export default function CheckWriter() {
                       minWidth: '120px',
                       textAlign: 'right',
                     }}>
-                      {formatCurrency(selectedPayment.amount)}
+                      {formatCurrency(selectedPayment.net_amount ?? selectedPayment.gross_amount ?? 0)}
                     </div>
 
                     {/* Amount in Words */}
@@ -605,7 +610,7 @@ export default function CheckWriter() {
                       marginBottom: '4px',
                       maxWidth: '70%',
                     }}>
-                      {numberToWords(selectedPayment.amount)}
+                      {numberToWords(selectedPayment.net_amount ?? selectedPayment.gross_amount ?? 0)}
                     </div>
 
                     {/* Memo */}
@@ -617,7 +622,7 @@ export default function CheckWriter() {
                         minWidth: '300px',
                         padding: '0 4px',
                       }}>
-                        {selectedPayment.description || selectedPayment.voucher_number}
+                        {selectedPayment.disbursement_description || selectedPayment.description || selectedPayment.voucher_number}
                       </span>
                     </div>
 

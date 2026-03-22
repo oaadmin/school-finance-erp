@@ -9,20 +9,22 @@ import { Receipt, Printer, Download, DollarSign, TrendingUp, TrendingDown, Calcu
 // Types
 // ---------------------------------------------------------------------------
 
-interface RevenueItem {
+interface SalesBreakdownItem {
+  account_code?: string;
   account_name: string;
   amount: number;
 }
 
 interface BIR2550MData {
-  taxableSales: number;
-  exemptSales: number;
-  zeroRatedSales: number;
-  outputVat: number;
-  inputVat: number;
-  vatPayable: number;
-  revenueBreakdown: RevenueItem[];
-  period: string;
+  taxable_sales: number;
+  exempt_sales: number;
+  zero_rated_sales: number;
+  output_vat: number;
+  input_vat: number;
+  vat_payable: number;
+  sales_breakdown: SalesBreakdownItem[];
+  form?: string;
+  period?: Record<string, unknown>;
 }
 
 // ---------------------------------------------------------------------------
@@ -64,12 +66,12 @@ export default function VAT2550MPage() {
   function handleExport() {
     if (!data) return;
     const rows = [
-      { Line: '1', Description: 'Total Taxable Sales', Amount: data.taxableSales },
-      { Line: '2', Description: 'Total Exempt Sales', Amount: data.exemptSales },
-      { Line: '3', Description: 'Total Zero-Rated Sales', Amount: data.zeroRatedSales },
-      { Line: '4', Description: 'Output Tax (Line 1 x 12%)', Amount: data.outputVat },
-      { Line: '5', Description: 'Less: Input Tax', Amount: data.inputVat },
-      { Line: '6', Description: 'VAT Payable (Line 4 - Line 5)', Amount: data.vatPayable },
+      { Line: '1', Description: 'Total Taxable Sales', Amount: (data.taxable_sales ?? 0) },
+      { Line: '2', Description: 'Total Exempt Sales', Amount: (data.exempt_sales ?? 0) },
+      { Line: '3', Description: 'Total Zero-Rated Sales', Amount: (data.zero_rated_sales ?? 0) },
+      { Line: '4', Description: 'Output Tax (Line 1 x 12%)', Amount: (data.output_vat ?? 0) },
+      { Line: '5', Description: 'Less: Input Tax', Amount: (data.input_vat ?? 0) },
+      { Line: '6', Description: 'VAT Payable (Line 4 - Line 5)', Amount: (data.vat_payable ?? 0) },
     ];
     exportToExcel(rows, `BIR-2550M_${month}`, `BIR 2550M - ${month}`);
   }
@@ -135,38 +137,38 @@ export default function VAT2550MPage() {
                 <DollarSign size={16} className="text-blue-500" />
                 <p className="text-xs text-gray-500">Taxable Sales</p>
               </div>
-              <p className="text-lg font-bold text-gray-900 mt-1">{formatCurrency(data.taxableSales)}</p>
+              <p className="text-lg font-bold text-gray-900 mt-1">{formatCurrency((data.taxable_sales ?? 0))}</p>
             </div>
             <div className="stat-card !p-4">
               <div className="flex items-center gap-2">
                 <TrendingUp size={16} className="text-red-500" />
                 <p className="text-xs text-gray-500">Output VAT (12%)</p>
               </div>
-              <p className="text-lg font-bold text-red-600 mt-1">{formatCurrency(data.outputVat)}</p>
+              <p className="text-lg font-bold text-red-600 mt-1">{formatCurrency((data.output_vat ?? 0))}</p>
             </div>
             <div className="stat-card !p-4">
               <div className="flex items-center gap-2">
                 <TrendingDown size={16} className="text-green-500" />
                 <p className="text-xs text-gray-500">Input VAT</p>
               </div>
-              <p className="text-lg font-bold text-green-600 mt-1">{formatCurrency(data.inputVat)}</p>
+              <p className="text-lg font-bold text-green-600 mt-1">{formatCurrency((data.input_vat ?? 0))}</p>
             </div>
             <div className="stat-card !p-4 border-2 border-blue-200">
               <div className="flex items-center gap-2">
                 <Calculator size={16} className="text-blue-500" />
                 <p className="text-xs text-gray-500">VAT Payable</p>
               </div>
-              <p className={`text-lg font-bold mt-1 ${data.vatPayable >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-                {formatCurrency(Math.abs(data.vatPayable))}
+              <p className={`text-lg font-bold mt-1 ${(data.vat_payable ?? 0) >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                {formatCurrency(Math.abs((data.vat_payable ?? 0)))}
               </p>
               <p className="text-[11px] text-gray-400 mt-0.5">
-                {data.vatPayable >= 0 ? 'Payable to BIR' : 'Excess Input VAT'}
+                {(data.vat_payable ?? 0) >= 0 ? 'Payable to BIR' : 'Excess Input VAT'}
               </p>
             </div>
           </div>
 
           {/* Revenue Breakdown Table */}
-          {data.revenueBreakdown.length > 0 && (
+          {(data.sales_breakdown || []).length > 0 && (
             <div className="card">
               <div className="card-header">
                 <h3 className="font-semibold">Revenue Breakdown</h3>
@@ -180,7 +182,7 @@ export default function VAT2550MPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.revenueBreakdown.map((item, i) => (
+                    {(data.sales_breakdown || []).map((item, i) => (
                       <tr key={i}>
                         <td className="font-medium">{item.account_name}</td>
                         <td className="text-right">{formatCurrency(item.amount)}</td>
@@ -191,7 +193,7 @@ export default function VAT2550MPage() {
                     <tr className="bg-gray-50 font-bold">
                       <td className="px-4 py-3">Total Revenue</td>
                       <td className="text-right px-4 py-3">
-                        {formatCurrency(data.revenueBreakdown.reduce((s, r) => s + r.amount, 0))}
+                        {formatCurrency((data.sales_breakdown || []).reduce((s, r) => s + r.amount, 0))}
                       </td>
                     </tr>
                   </tfoot>
@@ -222,33 +224,33 @@ export default function VAT2550MPage() {
                     <tr>
                       <td className="border border-gray-200 px-4 py-3 font-mono text-xs text-gray-500">1</td>
                       <td className="border border-gray-200 px-4 py-3 font-medium">Total Taxable Sales</td>
-                      <td className="border border-gray-200 px-4 py-3 text-right font-medium">{formatCurrency(data.taxableSales)}</td>
+                      <td className="border border-gray-200 px-4 py-3 text-right font-medium">{formatCurrency((data.taxable_sales ?? 0))}</td>
                     </tr>
                     <tr>
                       <td className="border border-gray-200 px-4 py-3 font-mono text-xs text-gray-500">2</td>
                       <td className="border border-gray-200 px-4 py-3 font-medium">Total Exempt Sales</td>
-                      <td className="border border-gray-200 px-4 py-3 text-right font-medium">{formatCurrency(data.exemptSales)}</td>
+                      <td className="border border-gray-200 px-4 py-3 text-right font-medium">{formatCurrency((data.exempt_sales ?? 0))}</td>
                     </tr>
                     <tr>
                       <td className="border border-gray-200 px-4 py-3 font-mono text-xs text-gray-500">3</td>
                       <td className="border border-gray-200 px-4 py-3 font-medium">Total Zero-Rated Sales</td>
-                      <td className="border border-gray-200 px-4 py-3 text-right font-medium">{formatCurrency(data.zeroRatedSales)}</td>
+                      <td className="border border-gray-200 px-4 py-3 text-right font-medium">{formatCurrency((data.zero_rated_sales ?? 0))}</td>
                     </tr>
                     <tr className="bg-red-50">
                       <td className="border border-gray-200 px-4 py-3 font-mono text-xs text-gray-500">4</td>
                       <td className="border border-gray-200 px-4 py-3 font-medium text-red-800">Output Tax (Line 1 x 12%)</td>
-                      <td className="border border-gray-200 px-4 py-3 text-right font-bold text-red-600">{formatCurrency(data.outputVat)}</td>
+                      <td className="border border-gray-200 px-4 py-3 text-right font-bold text-red-600">{formatCurrency((data.output_vat ?? 0))}</td>
                     </tr>
                     <tr className="bg-green-50">
                       <td className="border border-gray-200 px-4 py-3 font-mono text-xs text-gray-500">5</td>
                       <td className="border border-gray-200 px-4 py-3 font-medium text-green-800">Less: Input Tax</td>
-                      <td className="border border-gray-200 px-4 py-3 text-right font-bold text-green-600">({formatCurrency(data.inputVat)})</td>
+                      <td className="border border-gray-200 px-4 py-3 text-right font-bold text-green-600">({formatCurrency((data.input_vat ?? 0))})</td>
                     </tr>
                     <tr className="bg-blue-50 border-t-2 border-blue-300">
                       <td className="border border-gray-200 px-4 py-4 font-mono text-xs text-blue-600 font-bold">6</td>
                       <td className="border border-gray-200 px-4 py-4 font-bold text-blue-800">VAT Payable (Line 4 - Line 5)</td>
                       <td className="border border-gray-200 px-4 py-4 text-right font-bold text-lg text-blue-700">
-                        {formatCurrency(data.vatPayable)}
+                        {formatCurrency((data.vat_payable ?? 0))}
                       </td>
                     </tr>
                   </tbody>

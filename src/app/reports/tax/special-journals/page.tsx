@@ -9,11 +9,13 @@ type JournalType = 'cash-receipts' | 'cash-disbursements' | 'sales' | 'purchases
 
 interface JournalEntry {
   date: string;
-  reference: string;
+  or_number?: string;
+  reference?: string;
   description: string;
   payee?: string;
   payor?: string;
-  account_name: string;
+  account_code?: string;
+  account_name?: string;
   debit?: number;
   credit?: number;
   amount: number;
@@ -21,8 +23,10 @@ interface JournalEntry {
 }
 
 interface JournalResponse {
-  data: JournalEntry[];
-  totals: { total: number };
+  entries: JournalEntry[];
+  total: number;
+  journal?: string;
+  period?: Record<string, unknown>;
 }
 
 const TABS: { key: JournalType; label: string; icon: React.ReactNode }[] = [
@@ -45,8 +49,8 @@ export default function SpecialJournals() {
     fetch(`/api/reports/tax?type=special-journals&journal_type=${activeTab}&date_from=${dateFrom}&date_to=${dateTo}`)
       .then(r => r.json())
       .then((res: JournalResponse) => {
-        setData(res.data || []);
-        setTotals(res.totals || { total: 0 });
+        setData(res.entries || []);
+        setTotals({ total: res.total || 0 });
       })
       .catch(() => {
         setData([]);
@@ -80,8 +84,8 @@ export default function SpecialJournals() {
       if (activeTab === 'cash-receipts') {
         return {
           Date: entry.date,
-          'OR/Reference #': entry.reference,
-          'Received From': entry.payor || entry.payee || '',
+          'OR/Reference #': entry.or_number || entry.reference || '',
+          'Received From': entry.payor || entry.payee || entry.description || '',
           Description: entry.description,
           Account: entry.account_name,
           'Amount (Debit to Cash)': entry.debit ?? entry.amount ?? 0,
@@ -91,10 +95,10 @@ export default function SpecialJournals() {
       if (activeTab === 'cash-disbursements') {
         return {
           Date: entry.date,
-          'CV/Check #': entry.reference,
-          'Paid To': entry.payee || entry.payor || '',
+          'CV/Check #': entry.or_number || entry.reference || '',
+          'Paid To': entry.payee || entry.payor || entry.description || '',
           Description: entry.description,
-          Account: entry.account_name,
+          Account: entry.account_name || '',
           'Check No': entry.check_no || '',
           'Amount (Credit from Cash)': entry.credit ?? entry.amount ?? 0,
           'Running Total': runningTotals[i],
@@ -103,8 +107,8 @@ export default function SpecialJournals() {
       if (activeTab === 'sales') {
         return {
           Date: entry.date,
-          'Invoice #': entry.reference,
-          Customer: entry.payee || entry.payor || '',
+          'Invoice #': entry.or_number || entry.reference || '',
+          Customer: entry.payee || entry.payor || entry.description || '',
           Description: entry.description,
           Account: entry.account_name,
           Amount: entry.amount ?? 0,
@@ -113,8 +117,8 @@ export default function SpecialJournals() {
       }
       return {
         Date: entry.date,
-        Reference: entry.reference,
-        'Vendor/Supplier': entry.payee || entry.payor || '',
+        Reference: entry.or_number || entry.reference || '',
+        'Vendor/Supplier': entry.payee || entry.payor || entry.description || '',
         Description: entry.description,
         Account: entry.account_name,
         Amount: entry.amount ?? 0,
@@ -135,8 +139,12 @@ export default function SpecialJournals() {
   };
 
   const getPartyName = (entry: JournalEntry): string => {
-    if (activeTab === 'cash-receipts') return entry.payor || entry.payee || '';
-    return entry.payee || entry.payor || '';
+    if (activeTab === 'cash-receipts') return entry.payor || entry.payee || entry.description || '';
+    return entry.payee || entry.payor || entry.description || '';
+  };
+
+  const getReference = (entry: JournalEntry): string => {
+    return entry.or_number || entry.reference || '';
   };
 
   return (
@@ -284,12 +292,12 @@ export default function SpecialJournals() {
                   </tr>
                 ) : (
                   data.map((entry, i) => (
-                    <tr key={`${entry.reference}-${i}`}>
+                    <tr key={`${getReference(entry)}-${i}`}>
                       <td className="whitespace-nowrap">{entry.date}</td>
-                      <td className="font-mono text-xs">{entry.reference}</td>
+                      <td className="font-mono text-xs">{getReference(entry)}</td>
                       <td className="font-medium">{getPartyName(entry)}</td>
                       <td className="max-w-[200px] truncate">{entry.description}</td>
-                      <td>{entry.account_name}</td>
+                      <td>{entry.account_name || ''}</td>
                       {activeTab === 'cash-disbursements' && (
                         <td className="font-mono text-xs">{entry.check_no || '-'}</td>
                       )}
