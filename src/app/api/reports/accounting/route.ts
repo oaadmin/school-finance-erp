@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 
     const totalDebit = (data as Array<{total_debit: number}>).reduce((s, r) => s + r.total_debit, 0);
     const totalCredit = (data as Array<{total_credit: number}>).reduce((s, r) => s + r.total_credit, 0);
-    return NextResponse.json({ data, totals: { totalDebit, totalCredit, difference: totalDebit - totalCredit } });
+    return NextResponse.json({ data, totals: { totalDebit: Math.round(totalDebit * 100) / 100, totalCredit: Math.round(totalCredit * 100) / 100, difference: Math.round((totalDebit - totalCredit) * 100) / 100 } });
   }
 
   if (type === 'balance-sheet') {
