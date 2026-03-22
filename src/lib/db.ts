@@ -447,6 +447,48 @@ function initializeDatabase(db: Database.Database) {
       debit REAL DEFAULT 0,
       credit REAL DEFAULT 0
     );
+
+    CREATE TABLE IF NOT EXISTS bank_accounts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      account_name TEXT NOT NULL,
+      bank_name TEXT NOT NULL,
+      account_number TEXT,
+      gl_account_id INTEGER REFERENCES chart_of_accounts(id),
+      currency TEXT DEFAULT 'PHP',
+      is_active INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS bank_statements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      bank_account_id INTEGER NOT NULL REFERENCES bank_accounts(id),
+      statement_date TEXT,
+      file_name TEXT,
+      period_from TEXT NOT NULL,
+      period_to TEXT NOT NULL,
+      opening_balance REAL DEFAULT 0,
+      closing_balance REAL DEFAULT 0,
+      status TEXT DEFAULT 'draft',
+      reconciled_by TEXT,
+      reconciled_at TEXT,
+      notes TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS bank_statement_lines (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      statement_id INTEGER NOT NULL REFERENCES bank_statements(id) ON DELETE CASCADE,
+      transaction_date TEXT NOT NULL,
+      description TEXT,
+      reference TEXT,
+      debit REAL DEFAULT 0,
+      credit REAL DEFAULT 0,
+      running_balance REAL DEFAULT 0,
+      matched_je_line_id INTEGER REFERENCES journal_entry_lines(id),
+      match_status TEXT DEFAULT 'unmatched',
+      matched_at TEXT,
+      notes TEXT
+    );
   `);
 
   // Seed data if tables are empty
@@ -905,6 +947,15 @@ function seedData(db: Database.Database) {
     ['May 2026', '2025-2026', '2026-05-01', '2026-05-31', 'open'],
   ];
   periods.forEach(p => insertPeriod.run(...p));
+
+  // Bank Accounts
+  const insertBankAcct = db.prepare('INSERT INTO bank_accounts (account_name, bank_name, account_number, gl_account_id, currency) VALUES (?, ?, ?, ?, ?)');
+  const bdoId = (db.prepare("SELECT id FROM chart_of_accounts WHERE account_code = '1020'").get() as { id: number })?.id;
+  const bpiId = (db.prepare("SELECT id FROM chart_of_accounts WHERE account_code = '1030'").get() as { id: number })?.id;
+  const metroId = (db.prepare("SELECT id FROM chart_of_accounts WHERE account_code = '1040'").get() as { id: number })?.id;
+  insertBankAcct.run('BDO Savings - Operating', 'BDO', '001-2345678-01', bdoId, 'PHP');
+  insertBankAcct.run('BPI Current - Collections', 'BPI', '002-3456789-01', bpiId, 'PHP');
+  insertBankAcct.run('Metrobank Savings - Payroll', 'Metrobank', '003-4567890-01', metroId, 'PHP');
 
   // Customers
   const insertCustomer = db.prepare('INSERT INTO customers (customer_code, customer_type, name, campus, grade_level, email, phone, billing_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');

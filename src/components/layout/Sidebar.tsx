@@ -103,6 +103,13 @@ const navItems: NavItem[] = [
   { kind: 'link', label: 'Ledger Inquiry', href: '/accounting/ledger-inquiry', icon: Layers },
   { kind: 'link', label: 'Trial Balance', href: '/reports/accounting/trial-balance', icon: Scale },
   { kind: 'link', label: 'Period Closing', href: '/accounting/period-closing', icon: CheckSquare },
+  {
+    kind: 'collapsible', label: 'Bank Reconciliation', icon: Banknote,
+    children: [
+      { label: 'Bank Accounts', href: '/accounting/bank/accounts' },
+      { label: 'Statements', href: '/accounting/bank/statements' },
+    ],
+  },
 
   // ───── REPORTS ─────
   { kind: 'section', label: 'REPORTS' },
