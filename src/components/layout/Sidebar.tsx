@@ -5,10 +5,20 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, PieChart, Calculator, Table2, FileText, FilePlus,
   CheckSquare, CreditCard, Users, BarChart3, TrendingUp,
-  Shield, Settings, GraduationCap
+  Shield, Settings, GraduationCap, ChevronDown, BookOpen,
+  Receipt, Landmark, FileSpreadsheet
 } from 'lucide-react';
+import { useState } from 'react';
 
-const navItems = [
+interface NavItem {
+  label: string;
+  href?: string;
+  icon?: typeof LayoutDashboard;
+  type?: string;
+  children?: { label: string; href: string }[];
+}
+
+const navItems: NavItem[] = [
   { label: 'Finance Dashboard', href: '/finance-dashboard', icon: LayoutDashboard },
   { label: 'Budget Dashboard', href: '/budget-dashboard', icon: PieChart },
   { type: 'divider', label: 'BUDGET MANAGEMENT' },
@@ -22,8 +32,35 @@ const navItems = [
   { type: 'divider', label: 'MANAGEMENT' },
   { label: 'Vendors / Payees', href: '/vendors', icon: Users },
   { type: 'divider', label: 'REPORTS' },
-  { label: 'Budget vs Actual', href: '/reports/budget-vs-actual', icon: BarChart3 },
-  { label: 'Monthly Variance', href: '/reports/monthly-variance', icon: TrendingUp },
+  {
+    label: 'Disbursement Reports', icon: FileSpreadsheet,
+    children: [
+      { label: 'Budget vs Actual', href: '/reports/budget-vs-actual' },
+      { label: 'Monthly Variance', href: '/reports/monthly-variance' },
+    ],
+  },
+  {
+    label: 'Accounting Reports', icon: BookOpen,
+    children: [
+      { label: 'Trial Balance', href: '/reports/accounting/trial-balance' },
+      { label: 'Balance Sheet', href: '/reports/accounting/balance-sheet' },
+      { label: 'Income Statement', href: '/reports/accounting/income-statement' },
+      { label: 'Cash Flow Statement', href: '/reports/accounting/cash-flow' },
+      { label: 'General Ledger', href: '/reports/accounting/general-ledger' },
+      { label: 'Subsidiary Ledger', href: '/reports/accounting/subsidiary-ledger' },
+      { label: 'Journal Entries', href: '/reports/accounting/journal-entries' },
+      { label: 'Schedule of Expenses', href: '/reports/accounting/expense-schedule' },
+      { label: 'AP Aging', href: '/reports/accounting/ap-aging' },
+      { label: 'AR Aging', href: '/reports/accounting/ar-aging' },
+    ],
+  },
+  {
+    label: 'BIR & Tax Reports', icon: Landmark,
+    children: [
+      { label: 'BIR Financial Reports', href: '/reports/tax/bir-reports' },
+      { label: 'Tax Reports', href: '/reports/tax/tax-summary' },
+    ],
+  },
   { type: 'divider', label: 'SYSTEM' },
   { label: 'Audit Trail', href: '/audit-trail', icon: Shield },
   { label: 'Settings', href: '/settings', icon: Settings },
@@ -31,6 +68,22 @@ const navItems = [
 
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
+    // Auto-expand if current path matches a child
+    const init: Record<string, boolean> = {};
+    navItems.forEach(item => {
+      if (item.children) {
+        if (item.children.some(c => pathname.startsWith(c.href))) {
+          init[item.label] = true;
+        }
+      }
+    });
+    return init;
+  });
+
+  const toggleExpand = (label: string) => {
+    setExpanded(prev => ({ ...prev, [label]: !prev[label] }));
+  };
 
   return (
     <aside className="w-64 h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-white flex flex-col">
@@ -53,6 +106,47 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               </div>
             );
           }
+
+          // Expandable submenu
+          if (item.children) {
+            const Icon = item.icon!;
+            const isExpanded = expanded[item.label];
+            const hasActiveChild = item.children.some(c => pathname.startsWith(c.href));
+            return (
+              <div key={item.label}>
+                <button
+                  onClick={() => toggleExpand(item.label)}
+                  className={`sidebar-link w-full justify-between ${hasActiveChild ? 'text-white' : 'text-gray-300'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon size={18} className="flex-shrink-0" />
+                    <span className="truncate text-sm">{item.label}</span>
+                  </div>
+                  <ChevronDown size={14} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                </button>
+                {isExpanded && (
+                  <div className="ml-7 mt-0.5 space-y-0.5 border-l border-white/10 pl-3">
+                    {item.children.map(child => (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        onClick={onNavigate}
+                        className={`block px-2 py-1.5 rounded text-xs transition-colors ${
+                          pathname === child.href
+                            ? 'text-white bg-white/10 font-medium'
+                            : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                        }`}
+                      >
+                        {child.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          // Regular link
           const Icon = item.icon!;
           const isActive = pathname === item.href;
           return (

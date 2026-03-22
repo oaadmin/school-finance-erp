@@ -298,25 +298,115 @@ function seedData(db: Database.Database) {
   ];
   fss.forEach(f => insertFS.run(...f));
 
-  // Chart of Accounts
+  // Chart of Accounts - Full Philippine Standard
   const insertCOA = db.prepare('INSERT INTO chart_of_accounts (account_code, account_name, account_type) VALUES (?, ?, ?)');
   const coas = [
+    // Assets
     ['1000', 'Cash and Cash Equivalents', 'asset'],
     ['1010', 'Cash on Hand', 'asset'],
     ['1020', 'Cash in Bank - BDO', 'asset'],
     ['1030', 'Cash in Bank - BPI', 'asset'],
+    ['1040', 'Cash in Bank - Metrobank', 'asset'],
+    ['1050', 'Petty Cash Fund', 'asset'],
     ['1100', 'Accounts Receivable', 'asset'],
+    ['1110', 'Tuition Receivable', 'asset'],
+    ['1120', 'Other Receivables', 'asset'],
+    ['1150', 'Allowance for Doubtful Accounts', 'asset'],
+    ['1200', 'Prepaid Expenses', 'asset'],
+    ['1210', 'Prepaid Insurance', 'asset'],
+    ['1220', 'Prepaid Rent', 'asset'],
+    ['1230', 'Prepaid Supplies', 'asset'],
+    ['1300', 'Inventories', 'asset'],
+    ['1310', 'School Supplies Inventory', 'asset'],
+    ['1500', 'Property and Equipment', 'asset'],
+    ['1510', 'Land', 'asset'],
+    ['1520', 'Buildings', 'asset'],
+    ['1530', 'Furniture and Fixtures', 'asset'],
+    ['1540', 'Office Equipment', 'asset'],
+    ['1550', 'Computer Equipment', 'asset'],
+    ['1560', 'Transportation Equipment', 'asset'],
+    ['1600', 'Accumulated Depreciation', 'asset'],
+    ['1610', 'Accum. Dep. - Buildings', 'asset'],
+    ['1620', 'Accum. Dep. - Furniture', 'asset'],
+    ['1630', 'Accum. Dep. - Equipment', 'asset'],
+    // Liabilities
     ['2000', 'Accounts Payable', 'liability'],
+    ['2010', 'Accounts Payable - Trade', 'liability'],
+    ['2020', 'Accounts Payable - Others', 'liability'],
     ['2100', 'Withholding Tax Payable', 'liability'],
+    ['2110', 'WTax - Compensation', 'liability'],
+    ['2120', 'WTax - Expanded', 'liability'],
+    ['2130', 'WTax - Final', 'liability'],
+    ['2200', 'VAT Payable', 'liability'],
+    ['2210', 'Output VAT', 'liability'],
+    ['2220', 'Input VAT', 'liability'],
+    ['2300', 'SSS Payable', 'liability'],
+    ['2310', 'PhilHealth Payable', 'liability'],
+    ['2320', 'Pag-IBIG Payable', 'liability'],
+    ['2400', 'Accrued Expenses', 'liability'],
+    ['2410', 'Accrued Salaries', 'liability'],
+    ['2420', 'Accrued Utilities', 'liability'],
+    ['2500', 'Unearned Revenue', 'liability'],
+    ['2510', 'Unearned Tuition', 'liability'],
+    ['2600', 'Loans Payable', 'liability'],
+    ['2610', 'Bank Loan - Current', 'liability'],
+    ['2700', 'Long-term Liabilities', 'liability'],
+    ['2710', 'Bank Loan - Non-current', 'liability'],
+    // Equity
+    ['3000', 'Fund Balance', 'equity'],
+    ['3010', 'Retained Earnings', 'equity'],
+    ['3020', 'Current Year Surplus', 'equity'],
+    ['3100', 'Capital', 'equity'],
+    // Revenue
+    ['4000', 'Revenue', 'revenue'],
+    ['4010', 'Tuition Fees', 'revenue'],
+    ['4020', 'Miscellaneous Fees', 'revenue'],
+    ['4030', 'Laboratory Fees', 'revenue'],
+    ['4040', 'Library Fees', 'revenue'],
+    ['4050', 'Registration Fees', 'revenue'],
+    ['4100', 'Other Income', 'revenue'],
+    ['4110', 'Interest Income', 'revenue'],
+    ['4120', 'Rental Income', 'revenue'],
+    ['4130', 'Canteen Income', 'revenue'],
+    ['4140', 'Donation Income', 'revenue'],
+    // Cost of Services
+    ['4500', 'Cost of Services', 'expense'],
+    ['4510', 'Teaching Salaries', 'expense'],
+    ['4520', 'Teaching Supplies', 'expense'],
+    // Operating Expenses
     ['5000', 'Operating Expenses', 'expense'],
+    ['5010', 'Salaries and Wages', 'expense'],
+    ['5020', 'Employee Benefits', 'expense'],
+    ['5030', 'SSS Contributions', 'expense'],
+    ['5040', 'PhilHealth Contributions', 'expense'],
+    ['5050', 'Pag-IBIG Contributions', 'expense'],
+    ['5060', '13th Month Pay', 'expense'],
     ['5100', 'Supplies Expense', 'expense'],
-    ['5200', 'Repairs & Maintenance Expense', 'expense'],
+    ['5110', 'Office Supplies', 'expense'],
+    ['5120', 'Cleaning Supplies', 'expense'],
+    ['5200', 'Repairs & Maintenance', 'expense'],
+    ['5210', 'Building Repairs', 'expense'],
+    ['5220', 'Equipment Repairs', 'expense'],
     ['5300', 'Utilities Expense', 'expense'],
+    ['5310', 'Electricity', 'expense'],
+    ['5320', 'Water', 'expense'],
+    ['5330', 'Telephone & Internet', 'expense'],
     ['5400', 'Professional Fees', 'expense'],
-    ['5500', 'Software & License Expense', 'expense'],
+    ['5410', 'Audit Fees', 'expense'],
+    ['5420', 'Legal Fees', 'expense'],
+    ['5430', 'Consulting Fees', 'expense'],
+    ['5500', 'Software & Licenses', 'expense'],
     ['5600', 'Books & Publications', 'expense'],
-    ['5700', 'Events Expense', 'expense'],
-    ['5800', 'Travel Expense', 'expense'],
+    ['5700', 'Events & Activities', 'expense'],
+    ['5800', 'Travel & Transportation', 'expense'],
+    ['5900', 'Depreciation Expense', 'expense'],
+    ['5910', 'Insurance Expense', 'expense'],
+    ['5920', 'Taxes and Licenses', 'expense'],
+    ['5930', 'Advertising & Marketing', 'expense'],
+    ['5940', 'Security Services', 'expense'],
+    ['5950', 'Janitorial Services', 'expense'],
+    ['5960', 'Bank Charges', 'expense'],
+    ['5970', 'Miscellaneous Expense', 'expense'],
   ];
   coas.forEach(c => insertCOA.run(...c));
 
@@ -438,6 +528,147 @@ function seedData(db: Database.Database) {
     [6, 'PV-2025-0002', '2025-08-04', 'BDO-001', 'bank_transfer', null, 'BT-20250804-001', 48500, 0, 48500, 'completed', 6],
   ];
   payments.forEach(p => insertPayment.run(...p));
+
+  // Comprehensive Journal Entries for Accounting Reports
+  const insertJE = db.prepare(`INSERT INTO journal_entries (entry_number, entry_date, description, reference_type, reference_id, total_debit, total_credit, status, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, 'posted', 3)`);
+  const insertJEL = db.prepare('INSERT INTO journal_entry_lines (journal_entry_id, account_id, description, debit, credit) VALUES (?, ?, ?, ?, ?)');
+
+  // Helper: find account id by code
+  const acctId = (code: string): number => {
+    const row = db.prepare('SELECT id FROM chart_of_accounts WHERE account_code = ?').get(code) as { id: number } | undefined;
+    return row?.id || 1;
+  };
+
+  // Monthly revenue entries (Jul 2025 - Feb 2026)
+  const months = ['2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12', '2026-01', '2026-02'];
+  const tuitionAmounts = [3200000, 3200000, 2800000, 2500000, 2500000, 2000000, 3500000, 3200000];
+  const miscAmounts = [450000, 380000, 320000, 280000, 280000, 200000, 500000, 420000];
+
+  let jeSeq = 1;
+  months.forEach((month, idx) => {
+    const date = `${month}-01`;
+    const tuition = tuitionAmounts[idx];
+    const misc = miscAmounts[idx];
+
+    // Tuition Revenue
+    const je1 = insertJE.run(`JE-2025-${String(jeSeq++).padStart(4, '0')}`, date, `Tuition revenue - ${month}`, 'revenue', null, tuition, tuition);
+    insertJEL.run(je1.lastInsertRowid, acctId('1020'), 'Cash in Bank - BDO', tuition, 0);
+    insertJEL.run(je1.lastInsertRowid, acctId('4010'), 'Tuition Fees', 0, tuition);
+
+    // Misc Fees
+    const je2 = insertJE.run(`JE-2025-${String(jeSeq++).padStart(4, '0')}`, date, `Miscellaneous fees - ${month}`, 'revenue', null, misc, misc);
+    insertJEL.run(je2.lastInsertRowid, acctId('1020'), 'Cash in Bank', misc, 0);
+    insertJEL.run(je2.lastInsertRowid, acctId('4020'), 'Misc Fees', 0, misc * 0.4);
+    insertJEL.run(je2.lastInsertRowid, acctId('4030'), 'Lab Fees', 0, misc * 0.3);
+    insertJEL.run(je2.lastInsertRowid, acctId('4040'), 'Library Fees', 0, misc * 0.15);
+    insertJEL.run(je2.lastInsertRowid, acctId('4050'), 'Registration Fees', 0, misc * 0.15);
+
+    // Salary expense
+    const salary = 1800000 + Math.round(idx * 20000);
+    const je3 = insertJE.run(`JE-2025-${String(jeSeq++).padStart(4, '0')}`, `${month}-15`, `Payroll - ${month}`, 'payroll', null, salary, salary);
+    insertJEL.run(je3.lastInsertRowid, acctId('5010'), 'Salaries and Wages', salary * 0.7, 0);
+    insertJEL.run(je3.lastInsertRowid, acctId('4510'), 'Teaching Salaries', salary * 0.3, 0);
+    insertJEL.run(je3.lastInsertRowid, acctId('1020'), 'Cash in Bank - BDO', 0, salary * 0.88);
+    insertJEL.run(je3.lastInsertRowid, acctId('2110'), 'WTax - Compensation', 0, salary * 0.05);
+    insertJEL.run(je3.lastInsertRowid, acctId('2300'), 'SSS Payable', 0, salary * 0.04);
+    insertJEL.run(je3.lastInsertRowid, acctId('2310'), 'PhilHealth Payable', 0, salary * 0.02);
+    insertJEL.run(je3.lastInsertRowid, acctId('2320'), 'Pag-IBIG Payable', 0, salary * 0.01);
+
+    // Utilities
+    const util = 180000 + Math.round(Math.random() * 40000);
+    const je4 = insertJE.run(`JE-2025-${String(jeSeq++).padStart(4, '0')}`, `${month}-20`, `Utilities - ${month}`, 'expense', null, util, util);
+    insertJEL.run(je4.lastInsertRowid, acctId('5310'), 'Electricity', util * 0.6, 0);
+    insertJEL.run(je4.lastInsertRowid, acctId('5320'), 'Water', util * 0.2, 0);
+    insertJEL.run(je4.lastInsertRowid, acctId('5330'), 'Telephone & Internet', util * 0.2, 0);
+    insertJEL.run(je4.lastInsertRowid, acctId('1020'), 'Cash in Bank', 0, util * 0.98);
+    insertJEL.run(je4.lastInsertRowid, acctId('2120'), 'EWT', 0, util * 0.02);
+
+    // Supplies & maintenance
+    const supplies = 80000 + Math.round(Math.random() * 30000);
+    const je5 = insertJE.run(`JE-2025-${String(jeSeq++).padStart(4, '0')}`, `${month}-25`, `Supplies & maintenance - ${month}`, 'expense', null, supplies, supplies);
+    insertJEL.run(je5.lastInsertRowid, acctId('5110'), 'Office Supplies', supplies * 0.4, 0);
+    insertJEL.run(je5.lastInsertRowid, acctId('5120'), 'Cleaning Supplies', supplies * 0.2, 0);
+    insertJEL.run(je5.lastInsertRowid, acctId('5210'), 'Building Repairs', supplies * 0.4, 0);
+    insertJEL.run(je5.lastInsertRowid, acctId('1020'), 'Cash in Bank', 0, supplies * 0.88);
+    insertJEL.run(je5.lastInsertRowid, acctId('2220'), 'Input VAT', supplies * 0.12, 0);
+    insertJEL.run(je5.lastInsertRowid, acctId('2210'), 'Output VAT', 0, supplies * 0.12);
+    insertJEL.run(je5.lastInsertRowid, acctId('2120'), 'EWT', 0, supplies * 0.02);
+
+    // Professional services (quarterly)
+    if (idx % 3 === 0) {
+      const profFee = 150000;
+      const je6 = insertJE.run(`JE-2025-${String(jeSeq++).padStart(4, '0')}`, `${month}-28`, `Professional fees - ${month}`, 'expense', null, profFee, profFee);
+      insertJEL.run(je6.lastInsertRowid, acctId('5410'), 'Audit Fees', profFee * 0.5, 0);
+      insertJEL.run(je6.lastInsertRowid, acctId('5420'), 'Legal Fees', profFee * 0.3, 0);
+      insertJEL.run(je6.lastInsertRowid, acctId('5430'), 'Consulting Fees', profFee * 0.2, 0);
+      insertJEL.run(je6.lastInsertRowid, acctId('1020'), 'Cash in Bank', 0, profFee * 0.85);
+      insertJEL.run(je6.lastInsertRowid, acctId('2120'), 'EWT - Professional', 0, profFee * 0.15);
+    }
+
+    // Depreciation (monthly)
+    const depn = 95000;
+    const je7 = insertJE.run(`JE-2025-${String(jeSeq++).padStart(4, '0')}`, `${month}-30`, `Depreciation - ${month}`, 'adjusting', null, depn, depn);
+    insertJEL.run(je7.lastInsertRowid, acctId('5900'), 'Depreciation Expense', depn, 0);
+    insertJEL.run(je7.lastInsertRowid, acctId('1610'), 'Accum. Dep. - Buildings', 0, depn * 0.5);
+    insertJEL.run(je7.lastInsertRowid, acctId('1620'), 'Accum. Dep. - Furniture', 0, depn * 0.2);
+    insertJEL.run(je7.lastInsertRowid, acctId('1630'), 'Accum. Dep. - Equipment', 0, depn * 0.3);
+
+    // Insurance (monthly)
+    const ins = 25000;
+    const je8 = insertJE.run(`JE-2025-${String(jeSeq++).padStart(4, '0')}`, `${month}-30`, `Insurance expense - ${month}`, 'adjusting', null, ins, ins);
+    insertJEL.run(je8.lastInsertRowid, acctId('5910'), 'Insurance Expense', ins, 0);
+    insertJEL.run(je8.lastInsertRowid, acctId('1210'), 'Prepaid Insurance', 0, ins);
+
+    // Other operating expenses
+    const otherExp = 120000 + Math.round(Math.random() * 30000);
+    const je9 = insertJE.run(`JE-2025-${String(jeSeq++).padStart(4, '0')}`, `${month}-28`, `Other operating expenses - ${month}`, 'expense', null, otherExp, otherExp);
+    insertJEL.run(je9.lastInsertRowid, acctId('5500'), 'Software & Licenses', otherExp * 0.25, 0);
+    insertJEL.run(je9.lastInsertRowid, acctId('5940'), 'Security Services', otherExp * 0.3, 0);
+    insertJEL.run(je9.lastInsertRowid, acctId('5950'), 'Janitorial Services', otherExp * 0.2, 0);
+    insertJEL.run(je9.lastInsertRowid, acctId('5960'), 'Bank Charges', otherExp * 0.05, 0);
+    insertJEL.run(je9.lastInsertRowid, acctId('5970'), 'Miscellaneous', otherExp * 0.2, 0);
+    insertJEL.run(je9.lastInsertRowid, acctId('1020'), 'Cash in Bank', 0, otherExp);
+  });
+
+  // Opening balance entry
+  const jeOB = insertJE.run(`JE-2025-${String(jeSeq++).padStart(4, '0')}`, '2025-06-30', 'Opening balances SY 2025-2026', 'opening', null, 52000000, 52000000);
+  insertJEL.run(jeOB.lastInsertRowid, acctId('1010'), 'Cash on Hand', 500000, 0);
+  insertJEL.run(jeOB.lastInsertRowid, acctId('1020'), 'Cash in Bank - BDO', 8500000, 0);
+  insertJEL.run(jeOB.lastInsertRowid, acctId('1030'), 'Cash in Bank - BPI', 4200000, 0);
+  insertJEL.run(jeOB.lastInsertRowid, acctId('1050'), 'Petty Cash', 100000, 0);
+  insertJEL.run(jeOB.lastInsertRowid, acctId('1100'), 'Accounts Receivable', 2500000, 0);
+  insertJEL.run(jeOB.lastInsertRowid, acctId('1210'), 'Prepaid Insurance', 300000, 0);
+  insertJEL.run(jeOB.lastInsertRowid, acctId('1230'), 'Prepaid Supplies', 150000, 0);
+  insertJEL.run(jeOB.lastInsertRowid, acctId('1510'), 'Land', 15000000, 0);
+  insertJEL.run(jeOB.lastInsertRowid, acctId('1520'), 'Buildings', 12000000, 0);
+  insertJEL.run(jeOB.lastInsertRowid, acctId('1530'), 'Furniture and Fixtures', 3000000, 0);
+  insertJEL.run(jeOB.lastInsertRowid, acctId('1550'), 'Computer Equipment', 2500000, 0);
+  insertJEL.run(jeOB.lastInsertRowid, acctId('1560'), 'Transportation Equipment', 1800000, 0);
+  insertJEL.run(jeOB.lastInsertRowid, acctId('1600'), 'Accumulated Depreciation', 0, 4500000);
+  insertJEL.run(jeOB.lastInsertRowid, acctId('2000'), 'Accounts Payable', 0, 1800000);
+  insertJEL.run(jeOB.lastInsertRowid, acctId('2400'), 'Accrued Expenses', 0, 950000);
+  insertJEL.run(jeOB.lastInsertRowid, acctId('2610'), 'Bank Loan - Current', 0, 2000000);
+  insertJEL.run(jeOB.lastInsertRowid, acctId('2710'), 'Bank Loan - Non-current', 0, 5000000);
+  insertJEL.run(jeOB.lastInsertRowid, acctId('3010'), 'Retained Earnings', 0, 30300000);
+  insertJEL.run(jeOB.lastInsertRowid, acctId('3100'), 'Capital', 0, 6000000);
+  // Additional: loan payment
+  const jeLoan = insertJE.run(`JE-2025-${String(jeSeq++).padStart(4, '0')}`, '2025-09-15', 'Quarterly loan payment', 'payment', null, 550000, 550000);
+  insertJEL.run(jeLoan.lastInsertRowid, acctId('2610'), 'Bank Loan - Current', 500000, 0);
+  insertJEL.run(jeLoan.lastInsertRowid, acctId('5960'), 'Interest Expense', 50000, 0);
+  insertJEL.run(jeLoan.lastInsertRowid, acctId('1020'), 'Cash in Bank - BDO', 0, 550000);
+
+  // Equipment purchase
+  const jeEquip = insertJE.run(`JE-2025-${String(jeSeq++).padStart(4, '0')}`, '2025-10-10', 'Purchase of computer equipment', 'purchase', null, 450000, 450000);
+  insertJEL.run(jeEquip.lastInsertRowid, acctId('1550'), 'Computer Equipment', 450000, 0);
+  insertJEL.run(jeEquip.lastInsertRowid, acctId('1020'), 'Cash in Bank - BDO', 0, 450000);
+
+  // Interest income
+  months.forEach((month, idx) => {
+    const interest = 12000 + idx * 500;
+    const jeInt = insertJE.run(`JE-2025-${String(jeSeq++).padStart(4, '0')}`, `${month}-30`, `Interest income - ${month}`, 'revenue', null, interest, interest);
+    insertJEL.run(jeInt.lastInsertRowid, acctId('1020'), 'Cash in Bank', interest, 0);
+    insertJEL.run(jeInt.lastInsertRowid, acctId('4110'), 'Interest Income', 0, interest);
+  });
 
   // Audit logs
   const insertAudit = db.prepare('INSERT INTO audit_logs (entity_type, entity_id, action, old_values, new_values, performed_by) VALUES (?, ?, ?, ?, ?, ?)');
