@@ -236,6 +236,217 @@ function initializeDatabase(db: Database.Database) {
       category TEXT DEFAULT 'general',
       updated_at TEXT DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS accounting_periods (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      period_name TEXT NOT NULL,
+      school_year TEXT NOT NULL,
+      start_date TEXT NOT NULL,
+      end_date TEXT NOT NULL,
+      status TEXT DEFAULT 'open',
+      closed_by TEXT,
+      closed_date TEXT,
+      notes TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS ap_bills (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      bill_number TEXT UNIQUE NOT NULL,
+      bill_date TEXT NOT NULL,
+      posting_date TEXT,
+      due_date TEXT,
+      vendor_id INTEGER REFERENCES payees(id),
+      department_id INTEGER REFERENCES departments(id),
+      campus TEXT DEFAULT 'Main',
+      description TEXT,
+      gross_amount REAL DEFAULT 0,
+      vat_amount REAL DEFAULT 0,
+      withholding_tax REAL DEFAULT 0,
+      net_payable REAL DEFAULT 0,
+      amount_paid REAL DEFAULT 0,
+      balance REAL DEFAULT 0,
+      payment_terms TEXT,
+      reference_number TEXT,
+      journal_entry_id INTEGER REFERENCES journal_entries(id),
+      status TEXT DEFAULT 'draft',
+      created_by INTEGER REFERENCES users(id),
+      approved_by INTEGER REFERENCES users(id),
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS ap_bill_lines (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      bill_id INTEGER NOT NULL REFERENCES ap_bills(id) ON DELETE CASCADE,
+      account_id INTEGER REFERENCES chart_of_accounts(id),
+      description TEXT,
+      quantity REAL DEFAULT 1,
+      unit_cost REAL DEFAULT 0,
+      amount REAL DEFAULT 0,
+      tax_code TEXT,
+      withholding_tax_code TEXT,
+      department_id INTEGER REFERENCES departments(id),
+      project TEXT,
+      fund_source_id INTEGER REFERENCES fund_sources(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS ap_payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      payment_number TEXT UNIQUE NOT NULL,
+      payment_date TEXT NOT NULL,
+      vendor_id INTEGER REFERENCES payees(id),
+      payment_method TEXT DEFAULT 'bank_transfer',
+      bank_account TEXT,
+      check_number TEXT,
+      reference_number TEXT,
+      gross_amount REAL DEFAULT 0,
+      withholding_tax REAL DEFAULT 0,
+      discount_amount REAL DEFAULT 0,
+      net_amount REAL DEFAULT 0,
+      journal_entry_id INTEGER REFERENCES journal_entries(id),
+      status TEXT DEFAULT 'draft',
+      processed_by INTEGER REFERENCES users(id),
+      remarks TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS ap_payment_allocations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      payment_id INTEGER NOT NULL REFERENCES ap_payments(id) ON DELETE CASCADE,
+      bill_id INTEGER NOT NULL REFERENCES ap_bills(id),
+      amount_applied REAL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS customers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_code TEXT UNIQUE NOT NULL,
+      customer_type TEXT DEFAULT 'student',
+      name TEXT NOT NULL,
+      campus TEXT DEFAULT 'Main',
+      grade_level TEXT,
+      contact_person TEXT,
+      email TEXT,
+      phone TEXT,
+      billing_address TEXT,
+      tin TEXT,
+      default_ar_account_id INTEGER REFERENCES chart_of_accounts(id),
+      is_active INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS ar_invoices (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      invoice_number TEXT UNIQUE NOT NULL,
+      invoice_date TEXT NOT NULL,
+      posting_date TEXT,
+      due_date TEXT,
+      customer_id INTEGER REFERENCES customers(id),
+      campus TEXT DEFAULT 'Main',
+      school_year TEXT,
+      semester TEXT,
+      description TEXT,
+      gross_amount REAL DEFAULT 0,
+      discount_amount REAL DEFAULT 0,
+      tax_amount REAL DEFAULT 0,
+      net_receivable REAL DEFAULT 0,
+      amount_paid REAL DEFAULT 0,
+      balance REAL DEFAULT 0,
+      reference_number TEXT,
+      journal_entry_id INTEGER REFERENCES journal_entries(id),
+      status TEXT DEFAULT 'draft',
+      created_by INTEGER REFERENCES users(id),
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS ar_invoice_lines (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      invoice_id INTEGER NOT NULL REFERENCES ar_invoices(id) ON DELETE CASCADE,
+      fee_code TEXT,
+      description TEXT,
+      quantity REAL DEFAULT 1,
+      unit_amount REAL DEFAULT 0,
+      amount REAL DEFAULT 0,
+      revenue_account_id INTEGER REFERENCES chart_of_accounts(id),
+      department_id INTEGER REFERENCES departments(id),
+      tax_code TEXT,
+      discount_type TEXT,
+      discount_amount REAL DEFAULT 0,
+      remarks TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS ar_collections (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      receipt_number TEXT UNIQUE NOT NULL,
+      collection_date TEXT NOT NULL,
+      customer_id INTEGER REFERENCES customers(id),
+      payment_method TEXT DEFAULT 'cash',
+      bank_account TEXT,
+      check_number TEXT,
+      reference_number TEXT,
+      amount_received REAL DEFAULT 0,
+      applied_amount REAL DEFAULT 0,
+      unapplied_amount REAL DEFAULT 0,
+      journal_entry_id INTEGER REFERENCES journal_entries(id),
+      collected_by INTEGER REFERENCES users(id),
+      status TEXT DEFAULT 'draft',
+      remarks TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS ar_collection_allocations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      collection_id INTEGER NOT NULL REFERENCES ar_collections(id) ON DELETE CASCADE,
+      invoice_id INTEGER NOT NULL REFERENCES ar_invoices(id),
+      amount_applied REAL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS ar_credit_memos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      memo_number TEXT UNIQUE NOT NULL,
+      memo_date TEXT NOT NULL,
+      customer_id INTEGER REFERENCES customers(id),
+      related_invoice_id INTEGER REFERENCES ar_invoices(id),
+      reason TEXT,
+      amount REAL DEFAULT 0,
+      status TEXT DEFAULT 'draft',
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS ap_debit_memos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      memo_number TEXT UNIQUE NOT NULL,
+      memo_date TEXT NOT NULL,
+      vendor_id INTEGER REFERENCES payees(id),
+      related_bill_id INTEGER REFERENCES ap_bills(id),
+      reason TEXT,
+      amount REAL DEFAULT 0,
+      status TEXT DEFAULT 'draft',
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS recurring_journal_templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      template_name TEXT NOT NULL,
+      frequency TEXT DEFAULT 'monthly',
+      start_date TEXT,
+      end_date TEXT,
+      default_description TEXT,
+      auto_create INTEGER DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS recurring_journal_lines (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      template_id INTEGER NOT NULL REFERENCES recurring_journal_templates(id) ON DELETE CASCADE,
+      account_id INTEGER REFERENCES chart_of_accounts(id),
+      description TEXT,
+      debit REAL DEFAULT 0,
+      credit REAL DEFAULT 0
+    );
   `);
 
   // Seed data if tables are empty
@@ -669,6 +880,104 @@ function seedData(db: Database.Database) {
     insertJEL.run(jeInt.lastInsertRowid, acctId('1020'), 'Cash in Bank', interest, 0);
     insertJEL.run(jeInt.lastInsertRowid, acctId('4110'), 'Interest Income', 0, interest);
   });
+
+  // Accounting Periods
+  const insertPeriod = db.prepare('INSERT INTO accounting_periods (period_name, school_year, start_date, end_date, status) VALUES (?, ?, ?, ?, ?)');
+  const periods = [
+    ['June 2025', '2025-2026', '2025-06-01', '2025-06-30', 'closed'],
+    ['July 2025', '2025-2026', '2025-07-01', '2025-07-31', 'closed'],
+    ['August 2025', '2025-2026', '2025-08-01', '2025-08-31', 'closed'],
+    ['September 2025', '2025-2026', '2025-09-01', '2025-09-30', 'closed'],
+    ['October 2025', '2025-2026', '2025-10-01', '2025-10-31', 'closed'],
+    ['November 2025', '2025-2026', '2025-11-01', '2025-11-30', 'closed'],
+    ['December 2025', '2025-2026', '2025-12-01', '2025-12-31', 'open'],
+    ['January 2026', '2025-2026', '2026-01-01', '2026-01-31', 'open'],
+    ['February 2026', '2025-2026', '2026-02-01', '2026-02-28', 'open'],
+    ['March 2026', '2025-2026', '2026-03-01', '2026-03-31', 'open'],
+    ['April 2026', '2025-2026', '2026-04-01', '2026-04-30', 'open'],
+    ['May 2026', '2025-2026', '2026-05-01', '2026-05-31', 'open'],
+  ];
+  periods.forEach(p => insertPeriod.run(...p));
+
+  // Customers
+  const insertCustomer = db.prepare('INSERT INTO customers (customer_code, customer_type, name, campus, grade_level, email, phone, billing_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+  const customers = [
+    ['STU-2025-001', 'student', 'Maria Clara Santos', 'Main', 'Grade 11 - STEM', 'maria.clara@email.com', '09171234567', 'Quezon City'],
+    ['STU-2025-002', 'student', 'Jose Rizal Jr.', 'Main', 'Grade 12 - ABM', 'jose.rizal@email.com', '09181234567', 'Makati City'],
+    ['STU-2025-003', 'student', 'Andrea Bonifacio', 'Main', 'Grade 11 - HUMSS', 'andrea.b@email.com', '09191234567', 'Pasig City'],
+    ['STU-2025-004', 'student', 'Carlos Garcia III', 'Main', 'Grade 12 - STEM', 'carlos.g@email.com', '09201234567', 'Taguig City'],
+    ['STU-2025-005', 'student', 'Sofia Reyes', 'Main', 'Grade 11 - ABM', 'sofia.r@email.com', '09211234567', 'Manila'],
+    ['CORP-001', 'corporate', 'ABC Corporation (Scholarship Sponsor)', 'Main', null, 'hr@abccorp.ph', '028881234', 'BGC, Taguig'],
+    ['CORP-002', 'corporate', 'XYZ Foundation (Grant)', 'Main', null, 'grants@xyz.org', '028885678', 'Ortigas, Pasig'],
+    ['PARENT-001', 'parent', 'Mr. & Mrs. Santos', 'Main', null, 'santos.family@email.com', '09271234567', 'Quezon City'],
+  ];
+  customers.forEach(c => insertCustomer.run(...c));
+
+  // AP Bills
+  const insertBill = db.prepare('INSERT INTO ap_bills (bill_number, bill_date, due_date, vendor_id, department_id, description, gross_amount, vat_amount, withholding_tax, net_payable, balance, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+  const bills = [
+    ['BILL-2025-0001', '2025-07-10', '2025-08-10', 1, 1, 'Microsoft 365 annual subscription', 100000, 12000, 2000, 110000, 0, 'paid'],
+    ['BILL-2025-0002', '2025-07-15', '2025-08-15', 2, 4, 'Office supplies Q3', 25000, 3000, 500, 27500, 27500, 'posted'],
+    ['BILL-2025-0003', '2025-08-01', '2025-09-01', 3, 3, 'AC repair main building', 85000, 10200, 1700, 93500, 0, 'paid'],
+    ['BILL-2025-0004', '2025-08-20', '2025-09-20', 4, 2, 'Textbooks Grade 11-12', 175000, 0, 3500, 171500, 171500, 'approved'],
+    ['BILL-2025-0005', '2025-09-05', '2025-10-05', 5, 4, 'Water bill August 2025', 48500, 0, 0, 48500, 0, 'paid'],
+    ['BILL-2025-0006', '2025-09-15', '2025-10-15', 1, 1, 'Server hosting Q4', 36000, 4320, 720, 39600, 39600, 'posted'],
+    ['BILL-2025-0007', '2025-10-01', '2025-11-01', 3, 3, 'Plumbing repair science bldg', 42000, 5040, 840, 46200, 46200, 'posted'],
+    ['BILL-2025-0008', '2025-10-15', '2025-11-15', 2, 4, 'Printer ink cartridges', 15000, 1800, 300, 16500, 16500, 'draft'],
+  ];
+  bills.forEach(b => insertBill.run(...b));
+
+  // AR Invoices
+  const insertInvoice = db.prepare('INSERT INTO ar_invoices (invoice_number, invoice_date, due_date, customer_id, school_year, semester, description, gross_amount, discount_amount, net_receivable, amount_paid, balance, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+  const invoices = [
+    ['INV-2025-0001', '2025-06-15', '2025-07-15', 1, '2025-2026', '1st Semester', 'Tuition Fee - 1st Semester', 85000, 0, 85000, 85000, 0, 'paid'],
+    ['INV-2025-0002', '2025-06-15', '2025-07-15', 2, '2025-2026', '1st Semester', 'Tuition Fee - 1st Semester', 85000, 0, 85000, 60000, 25000, 'partially_paid'],
+    ['INV-2025-0003', '2025-06-15', '2025-07-15', 3, '2025-2026', '1st Semester', 'Tuition Fee - 1st Semester', 85000, 8500, 76500, 76500, 0, 'paid'],
+    ['INV-2025-0004', '2025-06-15', '2025-08-15', 4, '2025-2026', '1st Semester', 'Tuition Fee - 1st Semester', 85000, 0, 85000, 42500, 42500, 'partially_paid'],
+    ['INV-2025-0005', '2025-06-15', '2025-07-15', 5, '2025-2026', '1st Semester', 'Tuition Fee - 1st Semester', 85000, 0, 85000, 0, 85000, 'overdue'],
+    ['INV-2025-0006', '2025-06-15', '2025-07-15', 1, '2025-2026', '1st Semester', 'Miscellaneous Fees', 15000, 0, 15000, 15000, 0, 'paid'],
+    ['INV-2025-0007', '2025-06-15', '2025-07-15', 2, '2025-2026', '1st Semester', 'Laboratory Fees', 12000, 0, 12000, 12000, 0, 'paid'],
+    ['INV-2025-0008', '2025-06-15', '2025-07-15', 6, '2025-2026', '1st Semester', 'Scholarship Sponsor Billing', 250000, 0, 250000, 250000, 0, 'paid'],
+    ['INV-2025-0009', '2025-11-15', '2025-12-15', 1, '2025-2026', '2nd Semester', 'Tuition Fee - 2nd Semester', 85000, 0, 85000, 0, 85000, 'posted'],
+    ['INV-2025-0010', '2025-11-15', '2025-12-15', 2, '2025-2026', '2nd Semester', 'Tuition Fee - 2nd Semester', 85000, 0, 85000, 0, 85000, 'posted'],
+  ];
+  invoices.forEach(i => insertInvoice.run(...i));
+
+  // AR Collections
+  const insertCollection = db.prepare('INSERT INTO ar_collections (receipt_number, collection_date, customer_id, payment_method, amount_received, applied_amount, unapplied_amount, status, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+  const collections = [
+    ['OR-2025-0001', '2025-06-20', 1, 'bank_transfer', 100000, 100000, 0, 'posted', 'Full payment tuition + misc'],
+    ['OR-2025-0002', '2025-06-25', 2, 'check', 72000, 72000, 0, 'posted', 'Partial payment'],
+    ['OR-2025-0003', '2025-06-22', 3, 'cash', 76500, 76500, 0, 'posted', 'Full payment with scholarship discount'],
+    ['OR-2025-0004', '2025-07-10', 4, 'bank_transfer', 42500, 42500, 0, 'posted', 'Installment payment 1 of 2'],
+    ['OR-2025-0005', '2025-06-20', 6, 'bank_transfer', 250000, 250000, 0, 'posted', 'ABC Corp scholarship payment'],
+    ['OR-2025-0006', '2025-07-15', 1, 'cash', 15000, 15000, 0, 'posted', 'Misc fees payment'],
+    ['OR-2025-0007', '2025-07-01', 2, 'bank_transfer', 12000, 12000, 0, 'posted', 'Lab fees payment'],
+  ];
+  collections.forEach(c => insertCollection.run(...c));
+
+  // Collection allocations
+  const insertAlloc = db.prepare('INSERT INTO ar_collection_allocations (collection_id, invoice_id, amount_applied) VALUES (?, ?, ?)');
+  const allocs = [
+    [1, 1, 85000], [1, 6, 15000],
+    [2, 2, 60000], [2, 7, 12000],
+    [3, 3, 76500],
+    [4, 4, 42500],
+    [5, 8, 250000],
+    [6, 6, 15000],
+    [7, 7, 12000],
+  ];
+  allocs.forEach(a => insertAlloc.run(...a));
+
+  // Recurring Journal Templates
+  const insertTemplate = db.prepare('INSERT INTO recurring_journal_templates (template_name, frequency, start_date, end_date, default_description, auto_create, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)');
+  const templates = [
+    ['Monthly Depreciation', 'monthly', '2025-06-01', '2026-05-31', 'Monthly depreciation of fixed assets', 1, 1],
+    ['Monthly Insurance Amortization', 'monthly', '2025-06-01', '2026-05-31', 'Monthly prepaid insurance amortization', 1, 1],
+    ['Monthly Security Services', 'monthly', '2025-06-01', '2026-05-31', 'Monthly security service fee', 0, 1],
+    ['Quarterly Loan Interest', 'quarterly', '2025-06-01', '2026-05-31', 'Quarterly bank loan interest accrual', 0, 1],
+  ];
+  templates.forEach(t => insertTemplate.run(...t));
 
   // Audit logs
   const insertAudit = db.prepare('INSERT INTO audit_logs (entity_type, entity_id, action, old_values, new_values, performed_by) VALUES (?, ?, ?, ?, ?, ?)');

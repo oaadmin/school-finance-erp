@@ -1,0 +1,287 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { formatCurrency, getStatusColor, getStatusLabel, formatDate } from '@/lib/utils';
+import { FileText, Filter, Plus, Search, X } from 'lucide-react';
+import Link from 'next/link';
+
+interface Bill {
+  id: number;
+  bill_number: string;
+  bill_date: string;
+  due_date: string;
+  vendor_name: string;
+  description: string;
+  gross_amount: number;
+  vat_amount: number;
+  withholding_tax: number;
+  net_payable: number;
+  balance: number;
+  status: string;
+}
+
+interface Vendor {
+  id: number;
+  name: string;
+}
+
+interface Department {
+  id: number;
+  name: string;
+}
+
+const STATUS_OPTIONS = [
+  { value: '', label: 'All Status' },
+  { value: 'draft', label: 'Draft' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'posted', label: 'Posted' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
+
+const billStatusColor = (status: string): string => {
+  const colors: Record<string, string> = {
+    draft: 'bg-gray-100 text-gray-700',
+    approved: 'bg-blue-100 text-blue-700',
+    posted: 'bg-green-100 text-green-700',
+    paid: 'bg-emerald-100 text-emerald-700',
+    cancelled: 'bg-red-100 text-red-700',
+  };
+  return colors[status] || getStatusColor(status);
+};
+
+export default function SupplierBills() {
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    vendor_id: '',
+    department_id: '',
+    bill_date: new Date().toISOString().split('T')[0],
+    due_date: '',
+    description: '',
+    gross_amount: 0,
+    vat_amount: 0,
+    withholding_tax: 0,
+    net_payable: 0,
+  });
+
+  const loadBills = () => {
+    const params = new URLSearchParams({ type: 'bills' });
+    if (statusFilter) params.set('status', statusFilter);
+    fetch(`/api/accounting/ap?${params}`).then(r => r.json()).then(setBills);
+  };
+
+  useEffect(loadBills, [statusFilter]);
+
+  useEffect(() => {
+    if (showModal) {
+      fetch('/api/payees').then(r => r.json()).then(setVendors);
+      fetch('/api/settings').then(r => r.json()).then((data: Department[] | { departments: Department[] }) => {
+        setDepartments(Array.isArray(data) ? data : (data as { departments: Department[] }).departments || []);
+      });
+    }
+  }, [showModal]);
+
+  const updateGross = (gross: number) => {
+    const vat = Math.round(gross * 0.12 * 100) / 100;
+    const wht = Math.round(gross * 0.02 * 100) / 100;
+    const net = gross + vat - wht;
+    setForm({ ...form, gross_amount: gross, vat_amount: vat, withholding_tax: wht, net_payable: Math.round(net * 100) / 100 });
+  };
+
+  const handleCreate = async () => {
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/accounting/ap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) {
+        setShowModal(false);
+        setForm({
+          vendor_id: '', department_id: '',
+          bill_date: new Date().toISOString().split('T')[0],
+          due_date: '', description: '',
+          gross_amount: 0, vat_amount: 0, withholding_tax: 0, net_payable: 0,
+        });
+        loadBills();
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const filtered = search
+    ? bills.filter(b =>
+        b.bill_number?.toLowerCase().includes(search.toLowerCase()) ||
+        b.vendor_name?.toLowerCase().includes(search.toLowerCase()) ||
+        b.description?.toLowerCase().includes(search.toLowerCase())
+      )
+    : bills;
+
+  const totalNet = filtered.reduce((s, b) => s + (b.net_payable || 0), 0);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Supplier Bills</h1>
+          <p className="text-sm text-gray-500 mt-1">{filtered.length} bills &middot; Total Net Payable: {formatCurrency(totalNet)}</p>
+        </div>
+        <button className="btn-primary text-xs sm:text-sm" onClick={() => setShowModal(true)}>
+          <Plus size={16} /> New Bill
+        </button>
+      </div>
+
+      <div className="card">
+        <div className="p-3 sm:p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input className="input-field pl-9" placeholder="Search bills..."
+              value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter size={14} className="text-gray-400" />
+            <select className="select-field flex-1 sm:w-40" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+              {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Bill #</th>
+                <th className="hidden sm:table-cell">Date</th>
+                <th>Vendor</th>
+                <th className="hidden lg:table-cell">Description</th>
+                <th className="text-right hidden sm:table-cell">Gross</th>
+                <th className="text-right hidden md:table-cell">VAT</th>
+                <th className="text-right hidden md:table-cell">WHT</th>
+                <th className="text-right">Net Payable</th>
+                <th className="text-right hidden lg:table-cell">Balance</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(b => (
+                <tr key={b.id}>
+                  <td>
+                    <span className="text-primary-600 font-medium flex items-center gap-1 text-xs sm:text-sm">
+                      <FileText size={14} className="hidden sm:block" /> {b.bill_number}
+                    </span>
+                  </td>
+                  <td className="text-gray-500 hidden sm:table-cell">{formatDate(b.bill_date)}</td>
+                  <td className="font-medium text-xs sm:text-sm">{b.vendor_name || '\u2014'}</td>
+                  <td className="max-w-[200px] truncate hidden lg:table-cell">{b.description}</td>
+                  <td className="text-right hidden sm:table-cell">{formatCurrency(b.gross_amount)}</td>
+                  <td className="text-right hidden md:table-cell">{formatCurrency(b.vat_amount)}</td>
+                  <td className="text-right hidden md:table-cell">{formatCurrency(b.withholding_tax)}</td>
+                  <td className="text-right font-medium text-xs sm:text-sm">{formatCurrency(b.net_payable)}</td>
+                  <td className="text-right hidden lg:table-cell">{formatCurrency(b.balance)}</td>
+                  <td>
+                    <span className={`badge ${billStatusColor(b.status)} text-[10px] sm:text-xs`}>
+                      {getStatusLabel(b.status)}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr><td colSpan={10} className="text-center py-8 text-gray-500">No bills found</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Create Bill Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b flex items-center justify-between">
+              <h2 className="text-lg font-bold">New Supplier Bill</h2>
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="label">Vendor</label>
+                <select className="select-field" value={form.vendor_id} onChange={e => setForm({ ...form, vendor_id: e.target.value })}>
+                  <option value="">Select vendor...</option>
+                  {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="label">Department</label>
+                <select className="select-field" value={form.department_id} onChange={e => setForm({ ...form, department_id: e.target.value })}>
+                  <option value="">Select department...</option>
+                  {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Bill Date</label>
+                  <input className="input-field" type="date" value={form.bill_date}
+                    onChange={e => setForm({ ...form, bill_date: e.target.value })} />
+                </div>
+                <div>
+                  <label className="label">Due Date</label>
+                  <input className="input-field" type="date" value={form.due_date}
+                    onChange={e => setForm({ ...form, due_date: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <label className="label">Description</label>
+                <textarea className="input-field" rows={2} value={form.description}
+                  onChange={e => setForm({ ...form, description: e.target.value })} />
+              </div>
+              <hr />
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span>Gross Amount</span>
+                  <input className="input-field w-40 text-right" type="number" min={0} step="0.01"
+                    value={form.gross_amount || ''}
+                    onChange={e => updateGross(parseFloat(e.target.value) || 0)} />
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span>VAT (12%)</span>
+                  <input className="input-field w-40 text-right" type="number" step="0.01"
+                    value={form.vat_amount}
+                    onChange={e => {
+                      const vat = parseFloat(e.target.value) || 0;
+                      setForm({ ...form, vat_amount: vat, net_payable: Math.round((form.gross_amount + vat - form.withholding_tax) * 100) / 100 });
+                    }} />
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span>Withholding Tax (2%)</span>
+                  <input className="input-field w-40 text-right" type="number" step="0.01"
+                    value={form.withholding_tax}
+                    onChange={e => {
+                      const wht = parseFloat(e.target.value) || 0;
+                      setForm({ ...form, withholding_tax: wht, net_payable: Math.round((form.gross_amount + form.vat_amount - wht) * 100) / 100 });
+                    }} />
+                </div>
+                <hr />
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Net Payable</span>
+                  <span className="text-green-600">{formatCurrency(form.net_payable)}</span>
+                </div>
+              </div>
+            </div>
+            <div className="p-6 border-t flex justify-end gap-3">
+              <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
+              <button className="btn-primary" onClick={handleCreate} disabled={submitting || !form.vendor_id || !form.gross_amount}>
+                <Plus size={16} /> {submitting ? 'Saving...' : 'Create Bill'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
