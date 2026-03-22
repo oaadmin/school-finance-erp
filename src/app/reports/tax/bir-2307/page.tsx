@@ -129,9 +129,9 @@ export default function BIR2307Page() {
     fetchReport();
   }, [fetchReport]);
 
-  // Derive the selected vendor from reportData
+  // Derive the selected vendor from reportData — API returns filtered list, take first match
   const selectedVendor =
-    reportData?.vendors?.find((v) => v.vendor_id === selectedVendorId) ?? null;
+    reportData?.vendors?.[0] ?? null;
   const payorInfo: PayorInfo = reportData?.payorInfo ?? {
     name: 'OrangeApps Academy',
     tin: '123-456-789-000',
@@ -616,9 +616,9 @@ export default function BIR2307Page() {
                   <tbody>
                     {allVendors.map((v) => (
                       <tr
-                        key={v.vendor_id}
+                        key={v.vendor_name}
                         className={
-                          v.vendor_id === selectedVendorId ? 'bg-blue-50' : ''
+                          v.vendor_name === selectedVendor?.vendor_name ? 'bg-blue-50' : ''
                         }
                       >
                         <td>
@@ -639,7 +639,10 @@ export default function BIR2307Page() {
                         <td className="text-center">
                           <button
                             className="btn-secondary text-xs inline-flex items-center gap-1"
-                            onClick={() => setSelectedVendorId(v.vendor_id)}
+                            onClick={() => {
+                              const match = payees.find(p => p.name === v.vendor_name);
+                              if (match) setSelectedVendorId(match.id);
+                            }}
                           >
                             <FileText size={14} /> Generate
                           </button>
