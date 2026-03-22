@@ -150,7 +150,7 @@ export async function PUT(req: NextRequest) {
       UPDATE ap_bills SET bill_date = ?, due_date = ?, vendor_id = ?,
         department_id = ?, description = ?,
         gross_amount = ?, vat_amount = ?, withholding_tax = ?, net_payable = ?,
-        balance = ? - amount_paid,
+        balance = COALESCE(?, 0) - COALESCE(amount_paid, 0),
         updated_at = datetime('now')
       WHERE id = ?
     `).run(

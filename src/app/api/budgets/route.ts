@@ -64,26 +64,45 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const db = getDb();
-  const body = await req.json();
+  try {
+    const db = getDb();
+    const body = await req.json();
 
-  if (!body.id) {
-    return NextResponse.json({ error: 'id is required' }, { status: 400 });
+    if (!body.id) {
+      return NextResponse.json({ error: 'id is required' }, { status: 400 });
+    }
+
+    // Get existing record first so we only update provided fields
+    const existing = db.prepare('SELECT * FROM budgets WHERE id = ?').get(body.id) as Record<string, unknown> | undefined;
+    if (!existing) {
+      return NextResponse.json({ error: 'Budget not found' }, { status: 404 });
+    }
+
+    db.prepare(`
+      UPDATE budgets SET budget_name = ?, school_year = ?, department_id = ?, category_id = ?,
+        cost_center_id = ?, fund_source_id = ?, project = ?, campus = ?,
+        annual_budget = ?, budget_owner = ?, status = ?, notes = ?,
+        updated_at = datetime('now')
+      WHERE id = ?
+    `).run(
+      body.budget_name ?? existing.budget_name,
+      body.school_year ?? existing.school_year,
+      body.department_id ?? existing.department_id,
+      body.category_id ?? existing.category_id,
+      body.cost_center_id ?? existing.cost_center_id ?? null,
+      body.fund_source_id ?? existing.fund_source_id ?? null,
+      body.project ?? existing.project ?? null,
+      body.campus ?? existing.campus ?? 'Main',
+      body.annual_budget ?? existing.annual_budget,
+      body.budget_owner ?? existing.budget_owner ?? null,
+      body.status ?? existing.status ?? 'draft',
+      body.notes ?? existing.notes ?? null,
+      body.id
+    );
+
+    return NextResponse.json({ id: body.id });
+  } catch (error) {
+    console.error('Budget PUT error:', error);
+    return NextResponse.json({ error: 'Failed to update budget' }, { status: 500 });
   }
-
-  db.prepare(`
-    UPDATE budgets SET budget_name = ?, school_year = ?, department_id = ?, category_id = ?,
-      cost_center_id = ?, fund_source_id = ?, project = ?, campus = ?,
-      annual_budget = ?, budget_owner = ?, status = ?, notes = ?,
-      updated_at = datetime('now')
-    WHERE id = ?
-  `).run(
-    body.budget_name, body.school_year, body.department_id, body.category_id,
-    body.cost_center_id || null, body.fund_source_id || null,
-    body.project || null, body.campus || 'Main',
-    body.annual_budget, body.budget_owner || null, body.status || 'draft', body.notes || null,
-    body.id
-  );
-
-  return NextResponse.json({ id: body.id });
 }
