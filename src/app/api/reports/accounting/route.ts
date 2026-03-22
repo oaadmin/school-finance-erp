@@ -47,24 +47,53 @@ export async function GET(req: NextRequest) {
         ORDER BY coa.account_code
       `).all(dateTo, dateTo, t);
     }
-    // For liabilities/equity, balance = credit - debit (opposite sign)
-    const fixSign = (items: unknown[]) => (items as Array<{current_balance: number; previous_balance: number}>).map(i => ({
+    // For liabilities/equity, natural balance = credit - debit (negate the debit-credit result)
+    const flipSign = (items: unknown[]) => (items as Array<{current_balance: number; previous_balance: number}>).map(i => ({
       ...i,
-      current_balance: Math.abs(i.current_balance),
-      previous_balance: Math.abs(i.previous_balance),
+      current_balance: -i.current_balance,
+      previous_balance: -i.previous_balance,
     }));
-    result.liability = fixSign(result.liability);
-    result.equity = fixSign(result.equity);
+    result.liability = flipSign(result.liability);
+    result.equity = flipSign(result.equity);
+
+    // Calculate current period net income (Revenue - Expenses) to include in Equity
+    const netIncomeRow = db.prepare(`
+      SELECT
+        COALESCE(SUM(CASE WHEN coa.account_type = 'revenue' THEN jel.credit - jel.debit ELSE 0 END), 0) -
+        COALESCE(SUM(CASE WHEN coa.account_type = 'expense' THEN jel.debit - jel.credit ELSE 0 END), 0) as net_income
+      FROM journal_entry_lines jel
+      JOIN journal_entries je ON jel.journal_entry_id = je.id AND je.status = 'posted'
+      JOIN chart_of_accounts coa ON jel.account_id = coa.id
+      WHERE coa.account_type IN ('revenue', 'expense')
+        AND je.entry_date <= ?
+    `).get(dateTo) as { net_income: number } | undefined;
+
+    const netIncome = netIncomeRow?.net_income || 0;
+
+    // Add net income as a virtual equity line item
+    if (Math.abs(netIncome) > 0) {
+      (result.equity as Array<Record<string, unknown>>).push({
+        account_code: '',
+        account_name: 'Current Year Net Income',
+        account_type: 'equity',
+        current_balance: netIncome,
+        previous_balance: 0,
+      });
+    }
 
     const sum = (items: unknown[], key: string) => (items as Array<Record<string, number>>).reduce((s, i) => s + (i[key] || 0), 0);
+    const totalEquity = sum(result.equity, 'current_balance');
+    const totalLiabilities = sum(result.liability, 'current_balance');
+    const totalAssets = sum(result.asset, 'current_balance');
+
     return NextResponse.json({
       assets: result.asset,
       liabilities: result.liability,
       equity: result.equity,
       totals: {
-        totalAssets: sum(result.asset, 'current_balance'),
-        totalLiabilities: sum(result.liability, 'current_balance'),
-        totalEquity: sum(result.equity, 'current_balance'),
+        totalAssets,
+        totalLiabilities,
+        totalEquity,
       },
       asOfDate: dateTo,
     });

@@ -786,7 +786,8 @@ function seedData(db: Database.Database) {
     insertJEL.run(je3.lastInsertRowid, acctId('2320'), 'Pag-IBIG Payable', 0, salary * 0.01);
 
     // Utilities
-    const util = 180000 + Math.round(Math.random() * 40000);
+    const utilAmounts = [195000, 205000, 210000, 190000, 185000, 175000, 200000, 215000];
+    const util = utilAmounts[idx];
     const je4 = insertJE.run(`JE-2025-${String(jeSeq++).padStart(4, '0')}`, `${month}-20`, `Utilities - ${month}`, 'expense', null, util, util);
     insertJEL.run(je4.lastInsertRowid, acctId('5310'), 'Electricity', util * 0.6, 0);
     insertJEL.run(je4.lastInsertRowid, acctId('5320'), 'Water', util * 0.2, 0);
@@ -794,16 +795,21 @@ function seedData(db: Database.Database) {
     insertJEL.run(je4.lastInsertRowid, acctId('1020'), 'Cash in Bank', 0, util * 0.98);
     insertJEL.run(je4.lastInsertRowid, acctId('2120'), 'EWT', 0, util * 0.02);
 
-    // Supplies & maintenance
-    const supplies = 80000 + Math.round(Math.random() * 30000);
-    const je5 = insertJE.run(`JE-2025-${String(jeSeq++).padStart(4, '0')}`, `${month}-25`, `Supplies & maintenance - ${month}`, 'expense', null, supplies, supplies);
-    insertJEL.run(je5.lastInsertRowid, acctId('5110'), 'Office Supplies', supplies * 0.4, 0);
-    insertJEL.run(je5.lastInsertRowid, acctId('5120'), 'Cleaning Supplies', supplies * 0.2, 0);
-    insertJEL.run(je5.lastInsertRowid, acctId('5210'), 'Building Repairs', supplies * 0.4, 0);
-    insertJEL.run(je5.lastInsertRowid, acctId('1020'), 'Cash in Bank', 0, supplies * 0.88);
-    insertJEL.run(je5.lastInsertRowid, acctId('2220'), 'Input VAT', supplies * 0.12, 0);
-    insertJEL.run(je5.lastInsertRowid, acctId('2210'), 'Output VAT', 0, supplies * 0.12);
-    insertJEL.run(je5.lastInsertRowid, acctId('2120'), 'EWT', 0, supplies * 0.02);
+    // Supplies & maintenance (VAT-inclusive purchase: gross includes 12% VAT)
+    const supplyAmounts = [90000, 95000, 100000, 85000, 88000, 92000, 98000, 105000];
+    const supplies = supplyAmounts[idx];
+    const supplyVat = Math.round(supplies * 12 / 112);  // VAT component from VAT-inclusive price
+    const supplyNet = supplies - supplyVat;               // Net of VAT
+    const supplyEwt = Math.round(supplyNet * 0.02);       // 2% EWT on net
+    const supplyCash = supplies - supplyEwt;               // Cash paid = gross - EWT
+    const supplyTotal = supplyNet + supplyVat;             // = supplies (balanced)
+    const je5 = insertJE.run(`JE-2025-${String(jeSeq++).padStart(4, '0')}`, `${month}-25`, `Supplies & maintenance - ${month}`, 'expense', null, supplyTotal, supplyTotal);
+    insertJEL.run(je5.lastInsertRowid, acctId('5110'), 'Office Supplies', supplyNet * 0.4, 0);
+    insertJEL.run(je5.lastInsertRowid, acctId('5120'), 'Cleaning Supplies', supplyNet * 0.2, 0);
+    insertJEL.run(je5.lastInsertRowid, acctId('5210'), 'Building Repairs', supplyNet * 0.4, 0);
+    insertJEL.run(je5.lastInsertRowid, acctId('2220'), 'Input VAT', supplyVat, 0);
+    insertJEL.run(je5.lastInsertRowid, acctId('1020'), 'Cash in Bank', 0, supplyCash);
+    insertJEL.run(je5.lastInsertRowid, acctId('2120'), 'EWT', 0, supplyEwt);
 
     // Professional services (quarterly)
     if (idx % 3 === 0) {
@@ -831,7 +837,8 @@ function seedData(db: Database.Database) {
     insertJEL.run(je8.lastInsertRowid, acctId('1210'), 'Prepaid Insurance', 0, ins);
 
     // Other operating expenses
-    const otherExp = 120000 + Math.round(Math.random() * 30000);
+    const otherAmounts = [135000, 140000, 132000, 128000, 145000, 138000, 142000, 130000];
+    const otherExp = otherAmounts[idx];
     const je9 = insertJE.run(`JE-2025-${String(jeSeq++).padStart(4, '0')}`, `${month}-28`, `Other operating expenses - ${month}`, 'expense', null, otherExp, otherExp);
     insertJEL.run(je9.lastInsertRowid, acctId('5500'), 'Software & Licenses', otherExp * 0.25, 0);
     insertJEL.run(je9.lastInsertRowid, acctId('5940'), 'Security Services', otherExp * 0.3, 0);
@@ -842,7 +849,7 @@ function seedData(db: Database.Database) {
   });
 
   // Opening balance entry
-  const jeOB = insertJE.run(`JE-2025-${String(jeSeq++).padStart(4, '0')}`, '2025-06-30', 'Opening balances SY 2025-2026', 'opening', null, 52000000, 52000000);
+  const jeOB = insertJE.run(`JE-2025-${String(jeSeq++).padStart(4, '0')}`, '2025-06-30', 'Opening balances SY 2025-2026', 'opening', null, 50550000, 50550000);
   insertJEL.run(jeOB.lastInsertRowid, acctId('1010'), 'Cash on Hand', 500000, 0);
   insertJEL.run(jeOB.lastInsertRowid, acctId('1020'), 'Cash in Bank - BDO', 8500000, 0);
   insertJEL.run(jeOB.lastInsertRowid, acctId('1030'), 'Cash in Bank - BPI', 4200000, 0);
