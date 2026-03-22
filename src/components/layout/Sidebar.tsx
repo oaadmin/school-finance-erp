@@ -3,160 +3,317 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, PieChart, Calculator, Table2, FileText, FilePlus,
-  CheckSquare, CreditCard, Users, BarChart3, TrendingUp,
-  Shield, Settings, GraduationCap, ChevronDown, BookOpen,
-  Landmark, FileSpreadsheet, Building2, UserCheck, Clock, Layers
+  LayoutDashboard, PieChart, Calculator, Table2, TrendingUp, BarChart2,
+  FileText, FilePlus, CheckSquare, CreditCard, Users, BarChart3,
+  Shield, Settings, GraduationCap, ChevronDown, ChevronRight, BookOpen,
+  Landmark, FileSpreadsheet, Building2, UserCheck, Layers, Receipt,
+  Wallet, ClipboardCheck, Clock, CircleDollarSign, BookMarked,
+  ListChecks, FileCheck, BadgeDollarSign, Scale, Banknote,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
-interface NavItem {
-  label: string; href?: string; icon?: typeof LayoutDashboard;
-  type?: string; children?: { label: string; href: string }[];
-}
+// ─── Types ──────────────────────────────────────────────────
+type NavChild = {
+  label: string;
+  href: string;
+  badge?: number;
+};
 
+type NavCollapsible = {
+  kind: 'collapsible';
+  label: string;
+  icon: typeof LayoutDashboard;
+  children: NavChild[];
+};
+
+type NavLink = {
+  kind: 'link';
+  label: string;
+  href: string;
+  icon: typeof LayoutDashboard;
+  badge?: number;
+};
+
+type NavSection = {
+  kind: 'section';
+  label: string;
+};
+
+type NavItem = NavSection | NavLink | NavCollapsible;
+
+// ─── Navigation Structure ───────────────────────────────────
 const navItems: NavItem[] = [
-  { type: 'divider', label: 'OVERVIEW' },
-  { label: 'Dashboard', href: '/finance-dashboard', icon: LayoutDashboard },
-  { label: 'Accounting Home', href: '/accounting/dashboard', icon: BookOpen },
+  // ───── OVERVIEW ─────
+  { kind: 'section', label: 'OVERVIEW' },
+  { kind: 'link', label: 'Finance Dashboard', href: '/finance-dashboard', icon: LayoutDashboard },
+  { kind: 'link', label: 'Accounting Home', href: '/accounting/dashboard', icon: BookOpen },
 
-  { type: 'divider', label: 'BUDGETING' },
-  { label: 'Budget Dashboard', href: '/budget-dashboard', icon: PieChart },
-  { label: 'Budget Planning', href: '/budget-planning', icon: Calculator },
-  { label: 'Budget Allocation', href: '/budget-allocation', icon: Table2 },
-
-  { type: 'divider', label: 'ACCOUNTS PAYABLE' },
+  // ───── BUDGET MANAGEMENT ─────
+  { kind: 'section', label: 'BUDGET MANAGEMENT' },
+  { kind: 'link', label: 'Budget Dashboard', href: '/budget-dashboard', icon: PieChart },
+  { kind: 'link', label: 'Budget Planning', href: '/budget-planning', icon: Calculator },
+  { kind: 'link', label: 'Budget Allocation', href: '/budget-allocation', icon: Table2 },
   {
-    label: 'Payables', icon: Building2,
-    children: [
-      { label: 'Disbursement Requests', href: '/disbursements' },
-      { label: 'New Request', href: '/disbursements/create' },
-      { label: 'Approval Queue', href: '/approval-queue' },
-      { label: 'Bills', href: '/accounting/ap/bills' },
-      { label: 'Payments', href: '/payment-processing' },
-      { label: 'Supplier Payments', href: '/accounting/ap/payments' },
-      { label: 'AP Aging', href: '/accounting/ap/aging' },
-    ],
-  },
-  { label: 'Vendors / Payees', href: '/vendors', icon: Users },
-
-  { type: 'divider', label: 'ACCOUNTS RECEIVABLE' },
-  {
-    label: 'Receivables', icon: UserCheck,
-    children: [
-      { label: 'Customers', href: '/accounting/ar/customers' },
-      { label: 'Invoices / Charges', href: '/accounting/ar/invoices' },
-      { label: 'Collections / Receipts', href: '/accounting/ar/collections' },
-      { label: 'AR Aging', href: '/accounting/ar/aging' },
-      { label: 'Statement of Account', href: '/accounting/ar/soa' },
-    ],
-  },
-
-  { type: 'divider', label: 'GENERAL LEDGER' },
-  {
-    label: 'Ledger', icon: Layers,
-    children: [
-      { label: 'Chart of Accounts', href: '/accounting/chart-of-accounts' },
-      { label: 'Journal Entries', href: '/accounting/journal-entries' },
-      { label: 'Recurring Journals', href: '/accounting/recurring-journals' },
-      { label: 'Ledger Inquiry', href: '/accounting/ledger-inquiry' },
-      { label: 'Period Closing', href: '/accounting/period-closing' },
-    ],
-  },
-
-  { type: 'divider', label: 'REPORTS' },
-  {
-    label: 'Financial Reports', icon: BarChart3,
-    children: [
-      { label: 'Trial Balance', href: '/reports/accounting/trial-balance' },
-      { label: 'Balance Sheet', href: '/reports/accounting/balance-sheet' },
-      { label: 'Income Statement', href: '/reports/accounting/income-statement' },
-      { label: 'Cash Flow', href: '/reports/accounting/cash-flow' },
-      { label: 'General Ledger', href: '/reports/accounting/general-ledger' },
-      { label: 'Schedule of Expenses', href: '/reports/accounting/expense-schedule' },
-    ],
-  },
-  {
-    label: 'Budget Reports', icon: FileSpreadsheet,
+    kind: 'collapsible', label: 'Budget Analysis', icon: BarChart2,
     children: [
       { label: 'Budget vs Actual', href: '/reports/budget-vs-actual' },
       { label: 'Monthly Variance', href: '/reports/monthly-variance' },
     ],
   },
+
+  // ───── ACCOUNTS PAYABLE ─────
+  { kind: 'section', label: 'ACCOUNTS PAYABLE' },
   {
-    label: 'Tax & BIR', icon: Landmark,
+    kind: 'collapsible', label: 'Bills & Disbursements', icon: FileText,
     children: [
-      { label: 'BIR Reports', href: '/reports/tax/bir-reports' },
+      { label: 'Supplier Bills', href: '/accounting/ap/bills' },
+      { label: 'Disbursement Requests', href: '/disbursements' },
+      { label: 'Create Request', href: '/disbursements/create' },
+      { label: 'Approval Queue', href: '/approval-queue' },
+      { label: 'Payment Processing', href: '/payment-processing' },
+    ],
+  },
+  { kind: 'link', label: 'Vendors / Payees', href: '/vendors', icon: Building2 },
+  {
+    kind: 'collapsible', label: 'AP Payments', icon: Wallet,
+    children: [
+      { label: 'Supplier Payments', href: '/accounting/ap/payments' },
+      { label: 'AP Aging', href: '/accounting/ap/aging' },
+    ],
+  },
+
+  // ───── ACCOUNTS RECEIVABLE ─────
+  { kind: 'section', label: 'ACCOUNTS RECEIVABLE' },
+  {
+    kind: 'collapsible', label: 'Billing & Collections', icon: Receipt,
+    children: [
+      { label: 'Invoices / Charges', href: '/accounting/ar/invoices' },
+      { label: 'Collections / Receipts', href: '/accounting/ar/collections' },
+    ],
+  },
+  { kind: 'link', label: 'Customers / Students', href: '/accounting/ar/customers', icon: UserCheck },
+  { kind: 'link', label: 'AR Aging', href: '/accounting/ar/aging', icon: Clock },
+  { kind: 'link', label: 'Statement of Account', href: '/accounting/ar/soa', icon: FileCheck },
+
+  // ───── GENERAL LEDGER ─────
+  { kind: 'section', label: 'GENERAL LEDGER' },
+  { kind: 'link', label: 'Chart of Accounts', href: '/accounting/chart-of-accounts', icon: BookMarked },
+  { kind: 'link', label: 'Journal Entries', href: '/accounting/journal-entries', icon: ListChecks },
+  { kind: 'link', label: 'Recurring Journals', href: '/accounting/recurring-journals', icon: ClipboardCheck },
+  { kind: 'link', label: 'Ledger Inquiry', href: '/accounting/ledger-inquiry', icon: Layers },
+  { kind: 'link', label: 'Trial Balance', href: '/reports/accounting/trial-balance', icon: Scale },
+  { kind: 'link', label: 'Period Closing', href: '/accounting/period-closing', icon: CheckSquare },
+
+  // ───── REPORTS ─────
+  { kind: 'section', label: 'REPORTS' },
+  {
+    kind: 'collapsible', label: 'Financial Statements', icon: BarChart3,
+    children: [
+      { label: 'Balance Sheet', href: '/reports/accounting/balance-sheet' },
+      { label: 'Income Statement', href: '/reports/accounting/income-statement' },
+      { label: 'Cash Flow Statement', href: '/reports/accounting/cash-flow' },
+      { label: 'General Ledger Report', href: '/reports/accounting/general-ledger' },
+      { label: 'Journal Entries Report', href: '/reports/accounting/journal-entries' },
+      { label: 'Schedule of Expenses', href: '/reports/accounting/expense-schedule' },
+    ],
+  },
+  {
+    kind: 'collapsible', label: 'Aging Reports', icon: FileSpreadsheet,
+    children: [
+      { label: 'AP Aging Report', href: '/reports/accounting/ap-aging' },
+      { label: 'AR Aging Report', href: '/reports/accounting/ar-aging' },
+      { label: 'Subsidiary Ledger', href: '/reports/accounting/subsidiary-ledger' },
+    ],
+  },
+  {
+    kind: 'collapsible', label: 'Tax & BIR', icon: Landmark,
+    children: [
+      { label: 'BIR Financial Reports', href: '/reports/tax/bir-reports' },
       { label: 'Tax Summary', href: '/reports/tax/tax-summary' },
     ],
   },
 
-  { type: 'divider', label: 'SYSTEM' },
-  { label: 'Audit Trail', href: '/audit-trail', icon: Shield },
-  { label: 'Settings', href: '/settings', icon: Settings },
+  // ───── SYSTEM ─────
+  { kind: 'section', label: 'SYSTEM' },
+  { kind: 'link', label: 'Audit Trail', href: '/audit-trail', icon: Shield },
+  { kind: 'link', label: 'Settings', href: '/settings', icon: Settings },
 ];
 
+// ─── Sidebar Component ──────────────────────────────────────
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+
+  // Auto-expand groups containing the active route
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
     navItems.forEach(item => {
-      if (item.children?.some(c => pathname.startsWith(c.href))) init[item.label] = true;
+      if (item.kind === 'collapsible' && item.children.some(c => pathname.startsWith(c.href))) {
+        init[item.label] = true;
+      }
     });
     return init;
   });
 
+  // Update expanded state when pathname changes (navigating via links)
+  useEffect(() => {
+    setExpanded(prev => {
+      const next = { ...prev };
+      navItems.forEach(item => {
+        if (item.kind === 'collapsible' && item.children.some(c => pathname.startsWith(c.href))) {
+          next[item.label] = true;
+        }
+      });
+      return next;
+    });
+  }, [pathname]);
+
+  const toggle = useCallback((label: string) => {
+    setExpanded(prev => ({ ...prev, [label]: !prev[label] }));
+  }, []);
+
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
+
   return (
-    <aside className="w-64 h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-white flex flex-col">
-      <div className="p-4 flex items-center gap-3 border-b border-white/10">
-        <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center flex-shrink-0">
+    <aside className="w-64 h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 text-white flex flex-col select-none">
+      {/* ── Brand ── */}
+      <div className="h-14 px-4 flex items-center gap-3 border-b border-white/10 flex-shrink-0">
+        <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary-500/20">
           <GraduationCap size={18} />
         </div>
         <div className="min-w-0">
-          <h1 className="text-sm font-bold truncate">ORANGEAPPS</h1>
-          <p className="text-[10px] text-gray-400">ERP</p>
+          <h1 className="text-sm font-bold tracking-wide truncate">ORANGEAPPS</h1>
+          <p className="text-[9px] text-gray-500 uppercase tracking-widest">Finance ERP</p>
         </div>
       </div>
-      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-        {navItems.map((item, i) => {
-          if (item.type === 'divider') return (
-            <div key={i} className="pt-4 pb-1 px-3">
-              <span className="text-[10px] font-semibold text-gray-500 tracking-wider">{item.label}</span>
-            </div>
-          );
-          if (item.children) {
-            const Icon = item.icon!;
-            const isExpanded = expanded[item.label];
-            const hasActive = item.children.some(c => pathname.startsWith(c.href));
+
+      {/* ── Navigation ── */}
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2 px-2 space-y-0.5 scrollbar-thin">
+        {navItems.map((item, idx) => {
+          // ── Section Header ──
+          if (item.kind === 'section') {
             return (
-              <div key={item.label}>
-                <button onClick={() => setExpanded(p => ({...p, [item.label]: !p[item.label]}))}
-                  className={`sidebar-link w-full justify-between ${hasActive ? 'text-white' : 'text-gray-300'}`}>
-                  <div className="flex items-center gap-3"><Icon size={18} className="flex-shrink-0" /><span className="truncate text-sm">{item.label}</span></div>
-                  <ChevronDown size={14} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                </button>
-                {isExpanded && (
-                  <div className="ml-7 mt-0.5 space-y-0.5 border-l border-white/10 pl-3">
-                    {item.children.map(child => (
-                      <Link key={child.href} href={child.href} onClick={onNavigate}
-                        className={`block px-2 py-1.5 rounded text-xs transition-colors ${pathname === child.href ? 'text-white bg-white/10 font-medium' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}>
-                        {child.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
+              <div key={idx} className={`px-3 pb-1 ${idx > 0 ? 'pt-5' : 'pt-3'}`}>
+                <span className="text-[10px] font-semibold text-gray-500 tracking-[0.12em] uppercase">
+                  {item.label}
+                </span>
               </div>
             );
           }
-          const Icon = item.icon!;
-          return (
-            <Link key={item.href} href={item.href!} onClick={onNavigate}
-              className={`sidebar-link ${pathname === item.href ? 'active' : 'text-gray-300'}`}>
-              <Icon size={18} className="flex-shrink-0" /><span className="truncate">{item.label}</span>
-            </Link>
-          );
+
+          // ── Collapsible Group ──
+          if (item.kind === 'collapsible') {
+            const Icon = item.icon;
+            const isExp = expanded[item.label] || false;
+            const hasActive = item.children.some(c => isActive(c.href));
+            const totalBadge = item.children.reduce((sum, c) => sum + (c.badge || 0), 0);
+
+            return (
+              <div key={item.label}>
+                <button
+                  onClick={() => toggle(item.label)}
+                  className={`
+                    group w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm
+                    transition-all duration-150
+                    ${hasActive
+                      ? 'text-white bg-white/[0.08]'
+                      : 'text-gray-400 hover:text-gray-200 hover:bg-white/[0.04]'}
+                  `}
+                >
+                  <Icon size={17} className={`flex-shrink-0 ${hasActive ? 'text-primary-400' : 'text-gray-500 group-hover:text-gray-400'}`} />
+                  <span className="flex-1 text-left truncate font-medium">{item.label}</span>
+                  {totalBadge > 0 && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-bold bg-red-500/90 text-white rounded-full min-w-[18px] text-center">
+                      {totalBadge}
+                    </span>
+                  )}
+                  <ChevronRight
+                    size={14}
+                    className={`flex-shrink-0 text-gray-600 transition-transform duration-200 ${isExp ? 'rotate-90' : ''}`}
+                  />
+                </button>
+
+                {/* Submenu with smooth animation */}
+                <div
+                  className={`overflow-hidden transition-all duration-200 ease-in-out ${isExp ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
+                >
+                  <div className="ml-[22px] mt-0.5 mb-1 space-y-px border-l border-white/[0.07] pl-0">
+                    {item.children.map(child => {
+                      const active = isActive(child.href);
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          onClick={onNavigate}
+                          className={`
+                            relative flex items-center gap-2 pl-4 pr-3 py-[6px] ml-0 rounded-r-md text-[13px]
+                            transition-all duration-150
+                            ${active
+                              ? 'text-white bg-primary-500/20 font-medium before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[2px] before:bg-primary-400 before:rounded-full'
+                              : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.04]'}
+                          `}
+                        >
+                          <span className="truncate">{child.label}</span>
+                          {child.badge && child.badge > 0 && (
+                            <span className="px-1.5 py-0.5 text-[9px] font-bold bg-amber-500/90 text-white rounded-full min-w-[16px] text-center ml-auto flex-shrink-0">
+                              {child.badge}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // ── Direct Link ──
+          if (item.kind === 'link') {
+            const Icon = item.icon;
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onNavigate}
+                className={`
+                  group flex items-center gap-3 px-3 py-2 rounded-lg text-sm
+                  transition-all duration-150
+                  ${active
+                    ? 'text-white bg-primary-500/20 font-medium shadow-sm'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/[0.04]'}
+                `}
+              >
+                <Icon
+                  size={17}
+                  className={`flex-shrink-0 ${active ? 'text-primary-400' : 'text-gray-500 group-hover:text-gray-400'}`}
+                />
+                <span className="truncate">{item.label}</span>
+                {item.badge && item.badge > 0 && (
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold bg-red-500/90 text-white rounded-full min-w-[18px] text-center ml-auto flex-shrink-0">
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          }
+
+          return null;
         })}
       </nav>
+
+      {/* ── Footer ── */}
+      <div className="border-t border-white/[0.06] p-3 flex-shrink-0">
+        <div className="flex items-center gap-3 px-2">
+          <div className="w-7 h-7 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-bold">
+            RT
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium text-gray-300 truncate">Roberto Tan</p>
+            <p className="text-[10px] text-gray-500 truncate">Finance Manager</p>
+          </div>
+        </div>
+      </div>
     </aside>
   );
 }
