@@ -114,7 +114,10 @@ export default function VendorManagement() {
               </tr>
             </thead>
             <tbody>
-              {payees.map(p => (
+              {payees.filter(p =>
+                (!search || p.name?.toLowerCase().includes(search.toLowerCase()) || p.payee_code?.toLowerCase().includes(search.toLowerCase()) || p.tin?.toLowerCase().includes(search.toLowerCase())) &&
+                (!typeFilter || p.type === typeFilter)
+              ).map(p => (
                 <tr key={p.id}>
                   <td className="font-medium">{p.payee_code}</td>
                   <td>

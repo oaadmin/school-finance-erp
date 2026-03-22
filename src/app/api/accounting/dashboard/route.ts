@@ -102,25 +102,25 @@ export async function GET() {
     // Top 5 expense categories
     const topExpenseCategories = db.prepare(`
       SELECT coa.account_name as category,
-        COALESCE(SUM(jel.debit - jel.credit), 0) as total
+        COALESCE(SUM(jel.debit - jel.credit), 0) as amount
       FROM journal_entry_lines jel
       JOIN journal_entries je ON jel.journal_entry_id = je.id
       JOIN chart_of_accounts coa ON jel.account_id = coa.id
       WHERE je.status = 'posted'
         AND coa.account_type = 'expense'
       GROUP BY coa.id
-      HAVING total > 0
-      ORDER BY total DESC
+      HAVING amount > 0
+      ORDER BY amount DESC
       LIMIT 5
     `).all();
 
-    // Top 5 vendors by payment amount
+    // Top 5 vendors by total bills paid
     const topVendors = db.prepare(`
-      SELECT p.name as vendor,
-        COALESCE(SUM(ap.net_amount), 0) as total_paid
-      FROM ap_payments ap
-      JOIN payees p ON ap.vendor_id = p.id
-      WHERE ap.status = 'completed'
+      SELECT p.name as vendor_name,
+        COALESCE(SUM(b.amount_paid), 0) as total_paid
+      FROM ap_bills b
+      JOIN payees p ON b.vendor_id = p.id
+      WHERE b.status IN ('paid') AND b.amount_paid > 0
       GROUP BY p.id
       ORDER BY total_paid DESC
       LIMIT 5

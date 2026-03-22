@@ -69,7 +69,7 @@ export default function AccountingDashboard() {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-xs text-gray-500">{card.label}</p>
-                  <p className={`text-lg sm:text-xl font-bold text-${card.color}-600 mt-1 truncate`}>
+                  <p className={`text-base sm:text-lg font-bold text-${card.color}-600 mt-1`}>
                     {card.isCurrency === false ? (card.value || 0) : formatCurrency(card.value || 0)}
                   </p>
                 </div>
