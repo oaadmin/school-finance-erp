@@ -66,7 +66,7 @@ export default function FinanceDashboard() {
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-xs sm:text-sm text-gray-500">Total Annual Budget</p>
-              <p className="text-lg sm:text-2xl font-bold text-gray-900 mt-1">{formatCurrency(summary.total_budget)}</p>
+              <p className="text-sm sm:text-lg font-bold text-gray-900 mt-1">{formatCurrency(summary.total_budget)}</p>
             </div>
             <div className="w-8 h-8 sm:w-12 sm:h-12 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
               <PiggyBank size={16} className="text-blue-600 sm:hidden" />
@@ -80,7 +80,7 @@ export default function FinanceDashboard() {
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-xs sm:text-sm text-gray-500">Committed Budget</p>
-              <p className="text-lg sm:text-2xl font-bold text-amber-600 mt-1">{formatCurrency(summary.total_committed)}</p>
+              <p className="text-sm sm:text-lg font-bold text-amber-600 mt-1">{formatCurrency(summary.total_committed)}</p>
             </div>
             <div className="w-8 h-8 sm:w-12 sm:h-12 bg-amber-100 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
               <Clock size={16} className="text-amber-600 sm:hidden" />
@@ -99,7 +99,7 @@ export default function FinanceDashboard() {
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-xs sm:text-sm text-gray-500">Actual Spending</p>
-              <p className="text-lg sm:text-2xl font-bold text-green-600 mt-1">{formatCurrency(summary.total_actual)}</p>
+              <p className="text-sm sm:text-lg font-bold text-green-600 mt-1">{formatCurrency(summary.total_actual)}</p>
             </div>
             <div className="w-8 h-8 sm:w-12 sm:h-12 bg-green-100 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
               <TrendingUp size={16} className="text-green-600 sm:hidden" />
@@ -118,7 +118,7 @@ export default function FinanceDashboard() {
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-xs sm:text-sm text-gray-500">Remaining Budget</p>
-              <p className="text-lg sm:text-2xl font-bold text-gray-900 mt-1">{formatCurrency(summary.remaining)}</p>
+              <p className="text-sm sm:text-lg font-bold text-gray-900 mt-1">{formatCurrency(summary.remaining)}</p>
             </div>
             <div className="w-8 h-8 sm:w-12 sm:h-12 bg-purple-100 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
               <DollarSign size={16} className="text-purple-600 sm:hidden" />
