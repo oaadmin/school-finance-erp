@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { FileText, Printer, Download, Users, Calendar } from 'lucide-react';
 import Link from 'next/link';
+import { printDocument } from '@/lib/print-document';
 
 interface Customer {
   id: number;
@@ -59,7 +60,17 @@ export default function StatementOfAccountPage() {
   }, [selectedCustomerId, asOfDate]);
 
   const handlePrint = () => {
-    window.print();
+    if (!soaData) return;
+    const rows = (soaData.transactions || []).map(t =>
+      `<tr><td>${formatDate(t.date)}</td><td>${t.reference}</td><td>${t.description}</td><td class="text-right amount">${t.charges > 0 ? formatCurrency(t.charges) : ''}</td><td class="text-right amount">${t.payments > 0 ? '(' + formatCurrency(t.payments) + ')' : ''}</td><td class="text-right amount">${formatCurrency(t.running_balance)}</td></tr>`
+    ).join('');
+    printDocument({
+      title: 'Statement of Account',
+      documentNumber: soaData.customer?.customer_code || '',
+      date: asOfDate,
+      subtitle: `Customer: ${soaData.customer?.name || 'N/A'} | Campus: ${soaData.customer?.campus || 'N/A'}`,
+      content: `<table><tr><th>Date</th><th>Reference</th><th>Description</th><th class="text-right">Charges</th><th class="text-right">Payments</th><th class="text-right">Balance</th></tr>${rows}<tr class="total-row"><td colspan="3">Totals</td><td class="text-right">${formatCurrency(soaData.total_charges || 0)}</td><td class="text-right">(${formatCurrency(soaData.total_payments || 0)})</td><td class="text-right">${formatCurrency(soaData.outstanding_balance || 0)}</td></tr></table>`,
+    });
   };
 
   const handleExportCSV = () => {

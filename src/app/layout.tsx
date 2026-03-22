@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import AppShell from '@/components/layout/AppShell';
 import { ToastProvider } from '@/components/ui/Toast';
+import KeyboardShortcuts from '@/components/ui/KeyboardShortcuts';
 
 export const metadata: Metadata = {
   title: 'School Finance ERP - Disbursements & Budget Management',
@@ -16,6 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="antialiased">
         <ToastProvider>
+          <KeyboardShortcuts />
           <AppShell>{children}</AppShell>
         </ToastProvider>
       </body>

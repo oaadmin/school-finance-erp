@@ -87,7 +87,7 @@ export default function VendorManagement() {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Vendor / Payee Management</h1>
           <p className="text-sm text-gray-500 mt-1">Manage vendors, suppliers, and employee payees</p>
         </div>
-        <button className="btn-primary text-xs sm:text-sm" onClick={() => { setEditingId(null); setShowModal(true); }}><Plus size={16} /> Add Payee</button>
+        <button className="btn-primary text-xs sm:text-sm" data-shortcut="new" onClick={() => { setEditingId(null); setShowModal(true); }}><Plus size={16} /> Add Payee</button>
       </div>
 
       <div className="card">
@@ -161,7 +161,7 @@ export default function VendorManagement() {
           <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b flex items-center justify-between">
               <h2 className="text-lg font-bold">{editingId ? 'Edit Payee' : 'Add New Payee'}</h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600" data-shortcut="close-modal"><X size={20} /></button>
             </div>
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -183,7 +183,7 @@ export default function VendorManagement() {
             </div>
             <div className="p-6 border-t flex justify-end gap-3">
               <button className="btn-secondary" onClick={closeModal}>Cancel</button>
-              <button className="btn-primary" onClick={handleSave}><Save size={16} /> {editingId ? 'Update Payee' : 'Save Payee'}</button>
+              <button className="btn-primary" data-shortcut="save" onClick={handleSave}><Save size={16} /> {editingId ? 'Update Payee' : 'Save Payee'}</button>
             </div>
           </div>
         </div>

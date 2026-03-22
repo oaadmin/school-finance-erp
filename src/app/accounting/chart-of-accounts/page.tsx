@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useToast } from '@/components/ui/Toast';
 import { Plus, Search, X, Save, Edit2, ChevronRight } from 'lucide-react';
 import Pagination from '@/components/ui/Pagination';
+import ComboBox from '@/components/ui/ComboBox';
 
 interface Account {
   id: number;
@@ -322,21 +323,13 @@ export default function ChartOfAccounts() {
                   />
                 </div>
                 <div>
-                  <label className="label">Parent Account</label>
-                  <select
-                    className="select-field"
-                    value={form.parent_id}
-                    onChange={(e) =>
-                      setForm({ ...form, parent_id: e.target.value })
-                    }
-                  >
-                    <option value="">None (Top-level)</option>
-                    {parentAccounts.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.account_code} - {a.account_name}
-                      </option>
-                    ))}
-                  </select>
+                  <ComboBox
+                    options={parentAccounts.map(a => ({ value: a.id, label: a.account_name, sublabel: a.account_code }))}
+                    value={form.parent_id ? Number(form.parent_id) : null}
+                    onChange={(val) => setForm({ ...form, parent_id: String(val) })}
+                    placeholder="None (Top-level)"
+                    label="Parent Account"
+                  />
                 </div>
                 <div>
                   <label className="label">Normal Balance *</label>

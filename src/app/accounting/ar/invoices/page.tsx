@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
-import { FileText, Plus, Search, Filter, DollarSign, AlertCircle, CheckCircle, X, Edit2 } from 'lucide-react';
+import { FileText, Plus, Search, Filter, DollarSign, AlertCircle, CheckCircle, X, Edit2, XCircle, Printer } from 'lucide-react';
+import { printDocument } from '@/lib/print-document';
 import Link from 'next/link';
+import ComboBox from '@/components/ui/ComboBox';
 import Pagination from '@/components/ui/Pagination';
 
 interface Invoice {
@@ -38,6 +40,7 @@ const STATUS_OPTIONS = [
   { value: 'partially_paid', label: 'Partially Paid' },
   { value: 'paid', label: 'Paid' },
   { value: 'overdue', label: 'Overdue' },
+  { value: 'voided', label: 'Voided' },
 ];
 
 const invoiceStatusColor = (status: string): string => {
@@ -47,6 +50,7 @@ const invoiceStatusColor = (status: string): string => {
     partially_paid: 'bg-amber-100 text-amber-700',
     paid: 'bg-green-100 text-green-700',
     overdue: 'bg-red-100 text-red-700',
+    voided: 'bg-gray-200 text-gray-500',
   };
   return colors[status] || 'bg-gray-100 text-gray-700';
 };
@@ -58,6 +62,7 @@ const invoiceStatusLabel = (status: string): string => {
     partially_paid: 'Partially Paid',
     paid: 'Paid',
     overdue: 'Overdue',
+    voided: 'Voided',
   };
   return labels[status] || status;
 };
@@ -83,6 +88,30 @@ export default function InvoicesPage() {
     gross_amount: 0,
     discount_amount: 0,
   });
+
+  const [voidTarget, setVoidTarget] = useState<Invoice | null>(null);
+
+  const handleVoid = async () => {
+    if (!voidTarget) return;
+    try {
+      const res = await fetch('/api/accounting/ar/void', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: voidTarget.id, type: 'invoice' }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        success('Invoice Voided', data.message || `Invoice ${voidTarget.invoice_number} has been voided.`);
+        loadInvoices();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        error('Void Failed', err.error || 'Could not void invoice. Please try again.');
+      }
+    } catch (e) {
+      error('Void Failed', 'Network error. Please try again.');
+    }
+    setVoidTarget(null);
+  };
 
   const loadInvoices = () => {
     const params = new URLSearchParams({ type: 'invoices' });
@@ -167,7 +196,7 @@ export default function InvoicesPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AR Invoices / Charges</h1>
           <p className="text-sm text-gray-500 mt-1">{filtered.length} invoices</p>
         </div>
-        <button className="btn-primary text-xs sm:text-sm" onClick={() => { setEditingId(null); setShowModal(true); }}>
+        <button className="btn-primary text-xs sm:text-sm" data-shortcut="new" onClick={() => { setEditingId(null); setShowModal(true); }}>
           <Plus size={16} /> New Invoice
         </button>
       </div>
@@ -269,11 +298,27 @@ export default function InvoicesPage() {
                     </span>
                   </td>
                   <td>
-                    {(inv.status === 'draft' || inv.status === 'posted') && (
-                      <button onClick={() => openEdit(inv)} className="p-1 text-gray-400 hover:text-primary-600" title="Edit">
-                        <Edit2 size={14} />
+                    <div className="flex items-center gap-1">
+                      {(inv.status === 'draft' || inv.status === 'posted') && (
+                        <button onClick={() => openEdit(inv)} className="p-1 text-gray-400 hover:text-primary-600" title="Edit">
+                          <Edit2 size={14} />
+                        </button>
+                      )}
+                      {(inv.status === 'posted' || inv.status === 'partially_paid') && (
+                        <button onClick={() => setVoidTarget(inv)} className="p-1 text-gray-400 hover:text-red-600" title="Void">
+                          <XCircle size={14} />
+                        </button>
+                      )}
+                      <button onClick={() => printDocument({
+                        title: 'Invoice',
+                        documentNumber: inv.invoice_number,
+                        date: formatDate(inv.invoice_date),
+                        subtitle: `Customer: ${inv.customer_name || 'N/A'}`,
+                        content: `<table><tr><th>Description</th><th class="text-right">Gross</th><th class="text-right">Discount</th><th class="text-right">Net Amount</th><th class="text-right">Paid</th><th class="text-right">Balance</th></tr><tr><td>${inv.description || inv.invoice_number}</td><td class="text-right amount">${formatCurrency(inv.gross_amount)}</td><td class="text-right amount">${formatCurrency(inv.discount_amount)}</td><td class="text-right amount">${formatCurrency(inv.net_amount)}</td><td class="text-right amount">${formatCurrency(inv.amount_paid)}</td><td class="text-right amount">${formatCurrency(inv.balance)}</td></tr><tr class="total-row"><td>Total</td><td class="text-right">${formatCurrency(inv.gross_amount)}</td><td class="text-right">${formatCurrency(inv.discount_amount)}</td><td class="text-right">${formatCurrency(inv.net_amount)}</td><td class="text-right">${formatCurrency(inv.amount_paid)}</td><td class="text-right">${formatCurrency(inv.balance)}</td></tr></table><p style="margin-top:12px;font-size:10px;color:#666">Due Date: ${formatDate(inv.due_date)} | School Year: ${inv.school_year || 'N/A'} | Semester: ${inv.semester || 'N/A'}</p>${inv.status === 'voided' ? '<div style="margin-top:8px"><span class="stamp voided">VOIDED</span></div>' : inv.status === 'paid' ? '<div style="margin-top:8px"><span class="stamp paid">PAID</span></div>' : ''}`
+                      })} className="p-1 text-gray-400 hover:text-gray-600" title="Print">
+                        <Printer size={14} />
                       </button>
-                    )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -286,21 +331,50 @@ export default function InvoicesPage() {
         <Pagination currentPage={currentPage} totalItems={filtered.length} pageSize={pageSize} onPageChange={setCurrentPage} />
       </div>
 
+      {/* Void Confirmation Modal */}
+      {voidTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-md">
+            <div className="p-6 border-b flex items-center justify-between">
+              <h2 className="text-lg font-bold text-red-600">Void Invoice</h2>
+              <button onClick={() => setVoidTarget(null)} className="text-gray-400 hover:text-gray-600" data-shortcut="close-modal"><X size={20} /></button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-gray-600">
+                Are you sure you want to void invoice <strong>{voidTarget.invoice_number}</strong>? This will create a reversing entry.
+              </p>
+              <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700">
+                <AlertCircle size={14} className="inline mr-1" />
+                This action cannot be undone. The invoice will be marked as voided.
+              </div>
+            </div>
+            <div className="p-6 border-t flex justify-end gap-3">
+              <button className="btn-secondary" onClick={() => setVoidTarget(null)}>Cancel</button>
+              <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2" onClick={handleVoid}>
+                <XCircle size={14} /> Void Invoice
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Invoice Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b flex items-center justify-between">
               <h2 className="text-lg font-bold">{editingId ? 'Edit Invoice' : 'New Invoice'}</h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600" data-shortcut="close-modal"><X size={20} /></button>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="label">Customer</label>
-                <select className="select-field" value={form.customer_id} onChange={e => setForm({ ...form, customer_id: e.target.value })}>
-                  <option value="">Select customer...</option>
-                  {customers.map(c => <option key={c.id} value={c.id}>{c.customer_code} - {c.name}</option>)}
-                </select>
+                <ComboBox
+                  options={customers.map(c => ({ value: c.id, label: c.name, sublabel: c.customer_code }))}
+                  value={form.customer_id ? Number(form.customer_id) : null}
+                  onChange={(val) => setForm({ ...form, customer_id: String(val) })}
+                  placeholder="Select customer..."
+                  label="Customer"
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

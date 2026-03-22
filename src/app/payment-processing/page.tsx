@@ -5,6 +5,7 @@ import { formatCurrency, getStatusColor, getStatusLabel, formatDate } from '@/li
 import { useToast } from '@/components/ui/Toast';
 import { CreditCard, Plus, X, Printer, DollarSign } from 'lucide-react';
 import Link from 'next/link';
+import { printDocument } from '@/lib/print-document';
 
 interface Payment {
   id: number; voucher_number: string; payment_date: string; payment_method: string;
@@ -150,7 +151,13 @@ export default function PaymentProcessing() {
                   <td className="text-right font-medium">{formatCurrency(p.net_amount)}</td>
                   <td className="capitalize text-xs">{p.payment_method?.replace('_', ' ')}</td>
                   <td><span className={`badge ${getStatusColor(p.status)}`}>{getStatusLabel(p.status)}</span></td>
-                  <td><button className="text-gray-400 hover:text-gray-600"><Printer size={14} /></button></td>
+                  <td><button className="text-gray-400 hover:text-gray-600" title="Print" onClick={() => printDocument({
+                    title: 'Payment Voucher',
+                    documentNumber: p.voucher_number,
+                    date: formatDate(p.payment_date),
+                    subtitle: `Payee: ${p.payee_name || 'N/A'}`,
+                    content: `<table><tr><th>Description</th><th>Request #</th><th>Method</th><th class="text-right">Gross</th><th class="text-right">WHT</th><th class="text-right">Net Paid</th></tr><tr><td>${p.disbursement_description || p.voucher_number}</td><td>${p.request_number || ''}</td><td style="text-transform:capitalize">${p.payment_method?.replace('_', ' ') || ''}</td><td class="text-right amount">${formatCurrency(p.gross_amount)}</td><td class="text-right amount">${formatCurrency(p.withholding_tax)}</td><td class="text-right amount">${formatCurrency(p.net_amount)}</td></tr><tr class="total-row"><td colspan="3">Total</td><td class="text-right">${formatCurrency(p.gross_amount)}</td><td class="text-right">${formatCurrency(p.withholding_tax)}</td><td class="text-right">${formatCurrency(p.net_amount)}</td></tr></table>${p.bank_account ? `<p style="margin-top:12px;font-size:10px;color:#666">Bank Account: ${p.bank_account}${p.check_number ? ' | Check #: ' + p.check_number : ''}${p.reference_number ? ' | Ref: ' + p.reference_number : ''}</p>` : ''}`
+                  })}><Printer size={14} /></button></td>
                 </tr>
               ))}
               {payments.length === 0 && (
@@ -167,7 +174,7 @@ export default function PaymentProcessing() {
           <div className="bg-white rounded-xl w-full max-w-lg">
             <div className="p-6 border-b flex items-center justify-between">
               <h2 className="text-lg font-bold">Process Payment</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600" data-shortcut="close-modal"><X size={20} /></button>
             </div>
             <div className="p-6 space-y-4">
               <div className="bg-gray-50 rounded-lg p-4">

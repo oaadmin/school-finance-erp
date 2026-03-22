@@ -83,7 +83,7 @@ export default function BudgetAllocation() {
         <div className="flex flex-wrap gap-2">
           <button className="btn-secondary text-xs sm:text-sm"><Download size={16} /> Export to Excel</button>
           {hasEdits && (
-            <button className="btn-primary text-xs sm:text-sm" onClick={handleSave} disabled={saving}>
+            <button className="btn-primary text-xs sm:text-sm" data-shortcut="save" onClick={handleSave} disabled={saving}>
               <Save size={16} /> {saving ? 'Saving...' : 'Save Changes'}
             </button>
           )}

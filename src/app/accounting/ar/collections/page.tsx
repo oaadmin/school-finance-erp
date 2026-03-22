@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
-import { Receipt, Plus, Search, DollarSign, Hash, X } from 'lucide-react';
+import { Receipt, Plus, Search, DollarSign, Hash, X, Printer } from 'lucide-react';
 import Link from 'next/link';
+import { printDocument } from '@/lib/print-document';
+import ComboBox from '@/components/ui/ComboBox';
 
 interface Collection {
   id: number;
@@ -182,6 +184,7 @@ export default function CollectionsPage() {
                 <th className="text-right hidden sm:table-cell">Applied</th>
                 <th className="text-right hidden md:table-cell">Unapplied</th>
                 <th>Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -207,10 +210,21 @@ export default function CollectionsPage() {
                       {collectionStatusLabel(c.status)}
                     </span>
                   </td>
+                  <td>
+                    <button onClick={() => printDocument({
+                      title: 'Official Receipt',
+                      documentNumber: c.or_number,
+                      date: formatDate(c.collection_date),
+                      subtitle: `Received from: ${c.customer_name || 'N/A'}`,
+                      content: `<table><tr><th>Payment Method</th><th>Reference</th><th class="text-right">Amount Received</th><th class="text-right">Applied</th><th class="text-right">Unapplied</th></tr><tr><td>${methodLabel(c.payment_method)}</td><td>${c.reference_number || 'N/A'}</td><td class="text-right amount">${formatCurrency(c.amount_received)}</td><td class="text-right amount">${formatCurrency(c.amount_applied)}</td><td class="text-right amount">${formatCurrency(c.amount_unapplied)}</td></tr><tr class="total-row"><td colspan="2">Total</td><td class="text-right">${formatCurrency(c.amount_received)}</td><td class="text-right">${formatCurrency(c.amount_applied)}</td><td class="text-right">${formatCurrency(c.amount_unapplied)}</td></tr></table>${c.remarks ? `<p style="margin-top:12px;font-size:10px;color:#666">Remarks: ${c.remarks}</p>` : ''}`
+                    })} className="p-1 text-gray-400 hover:text-gray-600" title="Print">
+                      <Printer size={14} />
+                    </button>
+                  </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={8} className="text-center py-8 text-gray-500">No collection records found</td></tr>
+                <tr><td colSpan={9} className="text-center py-8 text-gray-500">No collection records found</td></tr>
               )}
             </tbody>
           </table>
@@ -223,15 +237,17 @@ export default function CollectionsPage() {
           <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b flex items-center justify-between">
               <h2 className="text-lg font-bold">New Collection</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600" data-shortcut="close-modal"><X size={20} /></button>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="label">Customer</label>
-                <select className="select-field" value={form.customer_id} onChange={e => setForm({ ...form, customer_id: e.target.value })}>
-                  <option value="">Select customer...</option>
-                  {customers.map(c => <option key={c.id} value={c.id}>{c.customer_code} - {c.name}</option>)}
-                </select>
+                <ComboBox
+                  options={customers.map(c => ({ value: c.id, label: c.name, sublabel: c.customer_code }))}
+                  value={form.customer_id ? Number(form.customer_id) : null}
+                  onChange={(val) => setForm({ ...form, customer_id: String(val) })}
+                  placeholder="Select customer..."
+                  label="Customer"
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

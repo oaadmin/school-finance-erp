@@ -130,6 +130,8 @@ const navItems: NavItem[] = [
     children: [
       { label: 'BIR Financial Reports', href: '/reports/tax/bir-reports' },
       { label: 'Tax Summary', href: '/reports/tax/tax-summary' },
+      { label: 'BIR 2307 Forms', href: '/reports/tax/bir-2307' },
+      { label: 'VAT Tracking', href: '/reports/tax/vat-tracking' },
     ],
   },
 

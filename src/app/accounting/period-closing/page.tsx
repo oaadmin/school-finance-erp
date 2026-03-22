@@ -7,15 +7,36 @@ import { Lock, Unlock, AlertTriangle, CheckCircle, Clock, Calendar, X } from 'lu
 
 interface Period { id: number; period_name: string; school_year: string; start_date: string; end_date: string; status: string; closed_by: string; closed_date: string; notes: string; }
 
+interface CheckItem { label: string; passed: boolean; count: number; detail: string | null; }
+
 export default function PeriodClosing() {
   const { success, error } = useToast();
   const [periods, setPeriods] = useState<Period[]>([]);
   const [actionModal, setActionModal] = useState<{ period: Period; action: string } | null>(null);
+  const [checklistItems, setChecklistItems] = useState<CheckItem[]>([]);
+  const [checklistLoading, setChecklistLoading] = useState(false);
+  const [closeWarnings, setCloseWarnings] = useState<string[]>([]);
 
   const loadData = () => {
     fetch('/api/accounting/periods').then(r => r.json()).then(setPeriods);
   };
   useEffect(loadData, []);
+
+  const loadChecklist = (periodId: number) => {
+    setChecklistLoading(true);
+    fetch(`/api/accounting/periods/validate?period_id=${periodId}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.checks) setChecklistItems(data.checks);
+      })
+      .finally(() => setChecklistLoading(false));
+  };
+
+  // Load checklist for the first open period
+  useEffect(() => {
+    const firstOpen = periods.find(p => p.status === 'open');
+    if (firstOpen) loadChecklist(firstOpen.id);
+  }, [periods]);
 
   const handleAction = async () => {
     if (!actionModal) return;
@@ -26,7 +47,11 @@ export default function PeriodClosing() {
         body: JSON.stringify({ id: actionModal.period.id, action: actionModal.action }),
       });
       if (res.ok) {
+        const data = await res.json();
         const actionLabel = actionModal.action === 'close' ? 'Closed' : 'Reopened';
+        if (data.warnings && data.warnings.length > 0) {
+          setCloseWarnings(data.warnings);
+        }
         success(`Period ${actionLabel}`, `${actionModal.period.period_name} has been ${actionLabel.toLowerCase()}.`);
       } else {
         const err = await res.json().catch(() => ({}));
@@ -61,20 +86,28 @@ export default function PeriodClosing() {
       <div className="card">
         <div className="card-header bg-amber-50"><h3 className="font-semibold text-amber-800 flex items-center gap-2"><AlertTriangle size={16} /> Pre-Closing Checklist</h3></div>
         <div className="card-body space-y-2">
-          {[
-            { label: 'All journal entries are posted', status: true },
-            { label: 'No draft bills pending approval', status: true },
-            { label: 'No unreconciled collections', status: true },
-            { label: 'Bank reconciliation completed', status: false },
-            { label: 'Depreciation entries posted', status: true },
-            { label: 'Accrual entries posted', status: true },
-            { label: 'Trial balance is balanced', status: true },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center gap-3 py-1">
-              {item.status ? <CheckCircle size={16} className="text-green-500" /> : <Clock size={16} className="text-amber-500" />}
-              <span className={`text-sm ${item.status ? 'text-gray-600' : 'text-amber-700 font-medium'}`}>{item.label}</span>
+          {checklistLoading ? (
+            <p className="text-sm text-gray-500 py-2">Loading validation checks...</p>
+          ) : checklistItems.length > 0 ? (
+            checklistItems.map((item, i) => (
+              <div key={i} className="flex items-center gap-3 py-1">
+                {item.passed ? <CheckCircle size={16} className="text-green-500" /> : <Clock size={16} className="text-amber-500" />}
+                <span className={`text-sm ${item.passed ? 'text-gray-600' : 'text-amber-700 font-medium'}`}>
+                  {item.label}{!item.passed && item.detail ? ` (${item.detail})` : ''}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-gray-500 py-2">Select an open period to run validation checks.</p>
+          )}
+          {closeWarnings.length > 0 && (
+            <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="text-xs font-medium text-amber-800 mb-1">Period was closed with warnings:</p>
+              {closeWarnings.map((w, i) => (
+                <p key={i} className="text-xs text-amber-700">- {w}</p>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       </div>
 
@@ -129,7 +162,7 @@ export default function PeriodClosing() {
           <div className="bg-white rounded-xl w-full max-w-md">
             <div className="p-6 border-b flex items-center justify-between">
               <h2 className="text-lg font-bold">{actionModal.action === 'close' ? 'Close' : 'Reopen'} Period</h2>
-              <button onClick={() => setActionModal(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              <button onClick={() => setActionModal(null)} className="text-gray-400 hover:text-gray-600" data-shortcut="close-modal"><X size={20} /></button>
             </div>
             <div className="p-6">
               <p className="text-sm text-gray-600">

@@ -79,7 +79,7 @@ export default function SystemSettings() {
           <p className="text-sm text-gray-500 mt-1">Configure system-wide financial settings</p>
         </div>
         {(hasEdits || saved) && (
-          <button className={`${saved ? 'btn-success' : 'btn-primary'} text-xs sm:text-sm`} onClick={handleSave} disabled={saving || saved}>
+          <button className={`${saved ? 'btn-success' : 'btn-primary'} text-xs sm:text-sm`} data-shortcut="save" onClick={handleSave} disabled={saving || saved}>
             <Save size={16} /> {saved ? 'Saved!' : saving ? 'Saving...' : 'Save Changes'}
           </button>
         )}

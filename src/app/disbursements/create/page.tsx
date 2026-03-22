@@ -5,6 +5,7 @@ import { formatCurrency } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
 import { Save, Send, Plus, Trash2, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import ComboBox from '@/components/ui/ComboBox';
 
 interface LineItem { description: string; quantity: number; unit_cost: number; amount: number; account_code: string; tax_code: string; remarks: string; }
 
@@ -134,48 +135,60 @@ export default function CreateDisbursement() {
               </select>
             </div>
             <div>
-              <label className="label">Payee</label>
-              <select className="select-field" value={form.payee_id} onChange={e => setForm({...form, payee_id: e.target.value})}>
-                <option value="">Select Payee...</option>
-                {payees.filter(p => p.type === form.payee_type || !form.payee_type).map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
+              <ComboBox
+                options={payees.filter(p => p.type === form.payee_type || !form.payee_type).map(p => ({ value: p.id, label: p.name, sublabel: p.type }))}
+                value={form.payee_id ? Number(form.payee_id) : null}
+                onChange={(val) => setForm({...form, payee_id: String(val)})}
+                placeholder="Select Payee..."
+                label="Payee"
+              />
             </div>
             <div>
-              <label className="label">Department *</label>
-              <select className="select-field" value={form.department_id} onChange={e => setForm({...form, department_id: e.target.value})}>
-                <option value="">Select...</option>
-                {lookups.departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-              </select>
+              <ComboBox
+                options={lookups.departments.map(d => ({ value: d.id, label: d.name }))}
+                value={form.department_id ? Number(form.department_id) : null}
+                onChange={(val) => setForm({...form, department_id: String(val)})}
+                placeholder="Select..."
+                label="Department"
+                required
+              />
             </div>
             <div>
-              <label className="label">Expense Category *</label>
-              <select className="select-field" value={form.category_id} onChange={e => setForm({...form, category_id: e.target.value})}>
-                <option value="">Select...</option>
-                {lookups.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <ComboBox
+                options={lookups.categories.map(c => ({ value: c.id, label: c.name }))}
+                value={form.category_id ? Number(form.category_id) : null}
+                onChange={(val) => setForm({...form, category_id: String(val)})}
+                placeholder="Select..."
+                label="Expense Category"
+                required
+              />
             </div>
             <div>
-              <label className="label">Cost Center</label>
-              <select className="select-field" value={form.cost_center_id} onChange={e => setForm({...form, cost_center_id: e.target.value})}>
-                <option value="">Select...</option>
-                {lookups.costCenters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <ComboBox
+                options={lookups.costCenters.map(c => ({ value: c.id, label: c.name }))}
+                value={form.cost_center_id ? Number(form.cost_center_id) : null}
+                onChange={(val) => setForm({...form, cost_center_id: String(val)})}
+                placeholder="Select..."
+                label="Cost Center"
+              />
             </div>
             <div>
-              <label className="label">Fund Source</label>
-              <select className="select-field" value={form.fund_source_id} onChange={e => setForm({...form, fund_source_id: e.target.value})}>
-                <option value="">Select...</option>
-                {lookups.fundSources.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-              </select>
+              <ComboBox
+                options={lookups.fundSources.map(f => ({ value: f.id, label: f.name }))}
+                value={form.fund_source_id ? Number(form.fund_source_id) : null}
+                onChange={(val) => setForm({...form, fund_source_id: String(val)})}
+                placeholder="Select..."
+                label="Fund Source"
+              />
             </div>
             <div>
-              <label className="label">Budget Line</label>
-              <select className="select-field" value={form.budget_id} onChange={e => setForm({...form, budget_id: e.target.value})}>
-                <option value="">Select Budget...</option>
-                {budgets.map(b => <option key={b.id} value={b.id}>{b.budget_name} ({formatCurrency(b.annual_budget)})</option>)}
-              </select>
+              <ComboBox
+                options={budgets.map(b => ({ value: b.id, label: b.budget_name, sublabel: formatCurrency(b.annual_budget) }))}
+                value={form.budget_id ? Number(form.budget_id) : null}
+                onChange={(val) => setForm({...form, budget_id: String(val)})}
+                placeholder="Select Budget..."
+                label="Budget Line"
+              />
             </div>
             <div>
               <label className="label">Payment Method</label>
@@ -296,7 +309,7 @@ export default function CreateDisbursement() {
           <button className="btn-secondary" onClick={() => handleSubmit(false)}>
             <Save size={16} /> Save as Draft
           </button>
-          <button className="btn-primary" onClick={() => handleSubmit(true)}
+          <button className="btn-primary" data-shortcut="save" onClick={() => handleSubmit(true)}
             disabled={!form.department_id || !form.category_id || totalAmount <= 0}>
             <Send size={16} /> Submit for Approval
           </button>

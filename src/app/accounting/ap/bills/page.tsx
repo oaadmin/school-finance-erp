@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { formatCurrency, getStatusColor, getStatusLabel, formatDate } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
-import { FileText, Filter, Plus, Search, X, Edit2 } from 'lucide-react';
+import { FileText, Filter, Plus, Search, X, Edit2, XCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import ComboBox from '@/components/ui/ComboBox';
 import Pagination from '@/components/ui/Pagination';
 
 interface Bill {
@@ -39,6 +40,7 @@ const STATUS_OPTIONS = [
   { value: 'posted', label: 'Posted' },
   { value: 'paid', label: 'Paid' },
   { value: 'cancelled', label: 'Cancelled' },
+  { value: 'voided', label: 'Voided' },
 ];
 
 const billStatusColor = (status: string): string => {
@@ -48,6 +50,7 @@ const billStatusColor = (status: string): string => {
     posted: 'bg-green-100 text-green-700',
     paid: 'bg-emerald-100 text-emerald-700',
     cancelled: 'bg-red-100 text-red-700',
+    voided: 'bg-gray-200 text-gray-500',
   };
   return colors[status] || getStatusColor(status);
 };
@@ -75,6 +78,30 @@ export default function SupplierBills() {
     withholding_tax: 0,
     net_payable: 0,
   });
+
+  const [voidTarget, setVoidTarget] = useState<Bill | null>(null);
+
+  const handleVoid = async () => {
+    if (!voidTarget) return;
+    try {
+      const res = await fetch('/api/accounting/ap/void', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: voidTarget.id, type: 'bill' }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        success('Bill Voided', data.message || `Bill ${voidTarget.bill_number} has been voided.`);
+        loadBills();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        error('Void Failed', err.error || 'Could not void bill. Please try again.');
+      }
+    } catch (e) {
+      error('Void Failed', 'Network error. Please try again.');
+    }
+    setVoidTarget(null);
+  };
 
   const loadBills = () => {
     const params = new URLSearchParams({ type: 'bills' });
@@ -166,7 +193,7 @@ export default function SupplierBills() {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Supplier Bills</h1>
           <p className="text-sm text-gray-500 mt-1">{filtered.length} bills &middot; Total Net Payable: {formatCurrency(totalNet)}</p>
         </div>
-        <button className="btn-primary text-xs sm:text-sm" onClick={() => { setEditingId(null); setShowModal(true); }}>
+        <button className="btn-primary text-xs sm:text-sm" data-shortcut="new" onClick={() => { setEditingId(null); setShowModal(true); }}>
           <Plus size={16} /> New Bill
         </button>
       </div>
@@ -224,11 +251,18 @@ export default function SupplierBills() {
                     </span>
                   </td>
                   <td>
-                    {b.status === 'draft' && (
-                      <button onClick={() => openEdit(b)} className="p-1 text-gray-400 hover:text-primary-600" title="Edit">
-                        <Edit2 size={14} />
-                      </button>
-                    )}
+                    <div className="flex items-center gap-1">
+                      {b.status === 'draft' && (
+                        <button onClick={() => openEdit(b)} className="p-1 text-gray-400 hover:text-primary-600" title="Edit">
+                          <Edit2 size={14} />
+                        </button>
+                      )}
+                      {(b.status === 'posted' || b.status === 'approved') && (
+                        <button onClick={() => setVoidTarget(b)} className="p-1 text-gray-400 hover:text-red-600" title="Void">
+                          <XCircle size={14} />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -241,28 +275,59 @@ export default function SupplierBills() {
         <Pagination currentPage={currentPage} totalItems={filtered.length} pageSize={pageSize} onPageChange={setCurrentPage} />
       </div>
 
+      {/* Void Confirmation Modal */}
+      {voidTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-md">
+            <div className="p-6 border-b flex items-center justify-between">
+              <h2 className="text-lg font-bold text-red-600">Void Bill</h2>
+              <button onClick={() => setVoidTarget(null)} className="text-gray-400 hover:text-gray-600" data-shortcut="close-modal"><X size={20} /></button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-gray-600">
+                Are you sure you want to void bill <strong>{voidTarget.bill_number}</strong>? This will create a reversing entry.
+              </p>
+              <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700">
+                <AlertCircle size={14} className="inline mr-1" />
+                This action cannot be undone. The bill will be marked as voided.
+              </div>
+            </div>
+            <div className="p-6 border-t flex justify-end gap-3">
+              <button className="btn-secondary" onClick={() => setVoidTarget(null)}>Cancel</button>
+              <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2" onClick={handleVoid}>
+                <XCircle size={14} /> Void Bill
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Bill Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b flex items-center justify-between">
               <h2 className="text-lg font-bold">{editingId ? 'Edit Supplier Bill' : 'New Supplier Bill'}</h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600" data-shortcut="close-modal"><X size={20} /></button>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="label">Vendor</label>
-                <select className="select-field" value={form.vendor_id} onChange={e => setForm({ ...form, vendor_id: e.target.value })}>
-                  <option value="">Select vendor...</option>
-                  {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-                </select>
+                <ComboBox
+                  options={vendors.map(v => ({ value: v.id, label: v.name }))}
+                  value={form.vendor_id ? Number(form.vendor_id) : null}
+                  onChange={(val) => setForm({ ...form, vendor_id: String(val) })}
+                  placeholder="Select vendor..."
+                  label="Vendor"
+                />
               </div>
               <div>
-                <label className="label">Department</label>
-                <select className="select-field" value={form.department_id} onChange={e => setForm({ ...form, department_id: e.target.value })}>
-                  <option value="">Select department...</option>
-                  {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                </select>
+                <ComboBox
+                  options={departments.map(d => ({ value: d.id, label: d.name }))}
+                  value={form.department_id ? Number(form.department_id) : null}
+                  onChange={(val) => setForm({ ...form, department_id: String(val) })}
+                  placeholder="Select department..."
+                  label="Department"
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

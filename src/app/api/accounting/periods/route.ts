@@ -61,6 +61,20 @@ export async function PUT(req: NextRequest) {
     }
 
     if (body.action === 'close') {
+      // Before closing, check for issues
+      const existing = period as any;
+      const periodStart = body.start_date || existing.start_date;
+      const periodEnd = body.end_date || existing.end_date;
+
+      const unpostedJEs = db.prepare(`SELECT COUNT(*) as c FROM journal_entries WHERE status != 'posted' AND entry_date BETWEEN ? AND ?`).get(periodStart, periodEnd) as any;
+      const draftBills = db.prepare(`SELECT COUNT(*) as c FROM ap_bills WHERE status = 'draft' AND bill_date BETWEEN ? AND ?`).get(periodStart, periodEnd) as any;
+      const draftInvoices = db.prepare(`SELECT COUNT(*) as c FROM ar_invoices WHERE status = 'draft' AND invoice_date BETWEEN ? AND ?`).get(periodStart, periodEnd) as any;
+
+      const warnings: string[] = [];
+      if (unpostedJEs?.c > 0) warnings.push(`${unpostedJEs.c} unposted journal entries`);
+      if (draftBills?.c > 0) warnings.push(`${draftBills.c} draft bills`);
+      if (draftInvoices?.c > 0) warnings.push(`${draftInvoices.c} draft invoices`);
+
       db.prepare(`
         UPDATE accounting_periods
         SET status = 'closed',
@@ -69,7 +83,7 @@ export async function PUT(req: NextRequest) {
         WHERE id = ?
       `).run(body.closed_by || 'System', body.id);
 
-      return NextResponse.json({ message: 'Period closed successfully' });
+      return NextResponse.json({ message: 'Period closed successfully', warnings });
     }
 
     if (body.action === 'reopen') {
