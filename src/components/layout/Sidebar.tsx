@@ -135,10 +135,19 @@ const navItems: NavItem[] = [
   {
     kind: 'collapsible', label: 'Tax & BIR', icon: Landmark,
     children: [
-      { label: 'BIR Financial Reports', href: '/reports/tax/bir-reports' },
       { label: 'Tax Summary', href: '/reports/tax/tax-summary' },
       { label: 'BIR 2307 Forms', href: '/reports/tax/bir-2307' },
-      { label: 'VAT Tracking', href: '/reports/tax/vat-tracking' },
+      { label: 'VAT Returns (2550M)', href: '/reports/tax/vat-tracking' },
+      { label: 'WHT Remittance (1601-E)', href: '/reports/tax/bir-1601e' },
+      { label: 'QAP / SAWT / Alphalist', href: '/reports/tax/alphalist' },
+      { label: 'BIR Financial Reports', href: '/reports/tax/bir-reports' },
+    ],
+  },
+  {
+    kind: 'collapsible', label: 'Books of Accounts', icon: BookOpen,
+    children: [
+      { label: 'Special Journals', href: '/reports/tax/special-journals' },
+      { label: 'Check Writer', href: '/reports/tax/check-writer' },
     ],
   },
 

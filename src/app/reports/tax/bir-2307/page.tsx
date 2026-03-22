@@ -1,432 +1,658 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { formatCurrency, formatDate } from '@/lib/utils';
-import { FileText, Printer, Download, Filter, Search } from 'lucide-react';
-import { printDocument } from '@/lib/print-document';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { formatCurrency } from '@/lib/utils';
 import { exportToExcel } from '@/lib/export';
-import { useToast } from '@/components/ui/Toast';
+import { FileText, Printer, Download, Users, Building2 } from 'lucide-react';
 
-interface WHT2307Transaction {
-  reference: string;
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface Payment {
   date: string;
+  reference: string;
   description: string;
-  gross: number;
-  tax_rate: number;
-  wht: number;
+  gross_amount: number;
+  withholding_tax: number;
+  atc: string;
 }
 
-interface WHT2307 {
+interface Vendor {
   vendor_id: number;
   vendor_name: string;
-  vendor_code: string;
   tin: string;
   address: string;
   total_gross: number;
-  total_wht: number;
-  transactions: WHT2307Transaction[];
+  total_tax: number;
+  payments: Payment[];
 }
 
-interface Period {
-  quarter: string;
-  year: string;
-  startDate: string;
-  endDate: string;
-}
-
-interface SchoolInfo {
+interface PayorInfo {
   name: string;
   tin: string;
   address: string;
 }
 
+interface TaxReportData {
+  vendors: Vendor[];
+  payorInfo: PayorInfo;
+  quarter: string;
+  year: number;
+}
+
+interface PayeeOption {
+  id: number;
+  name: string;
+  tin: string;
+}
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const QUARTERS = [
+  { value: 'Q1', label: 'Q1 (Jan - Mar)', months: ['January', 'February', 'March'], from: '01-01', to: '03-31' },
+  { value: 'Q2', label: 'Q2 (Apr - Jun)', months: ['April', 'May', 'June'], from: '04-01', to: '06-30' },
+  { value: 'Q3', label: 'Q3 (Jul - Sep)', months: ['July', 'August', 'September'], from: '07-01', to: '09-30' },
+  { value: 'Q4', label: 'Q4 (Oct - Dec)', months: ['October', 'November', 'December'], from: '10-01', to: '12-31' },
+] as const;
+
 const currentYear = new Date().getFullYear();
-const YEARS = Array.from({ length: 5 }, (_, i) => String(currentYear - i));
-const QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4'];
+const YEARS = Array.from({ length: 6 }, (_, i) => currentYear - i);
 
-function getATCCode(taxRate: number): string {
-  if (taxRate >= 14 && taxRate <= 16) return 'WI010';  // Professional fees
-  if (taxRate >= 1 && taxRate <= 3) return 'WC010';    // Contractors
-  if (taxRate >= 4 && taxRate <= 6) return 'WI100';    // Rent
-  if (taxRate >= 9 && taxRate <= 11) return 'WI010';   // Professional fees (10%)
-  return 'WI010'; // Default to professional fees
-}
-
-function getATCDescription(atc: string): string {
-  const map: Record<string, string> = {
-    'WI010': 'Professional/talent fees - Individual',
-    'WC010': 'Contractors - Income payments',
-    'WI100': 'Rent - Real property',
-  };
-  return map[atc] || 'Other income payments';
-}
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export default function BIR2307Page() {
-  const [data, setData] = useState<WHT2307[]>([]);
-  const [period, setPeriod] = useState<Period | null>(null);
-  const [schoolInfo, setSchoolInfo] = useState<SchoolInfo | null>(null);
-  const [quarter, setQuarter] = useState('Q1');
-  const [year, setYear] = useState(String(currentYear));
-  const [vendorSearch, setVendorSearch] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [expandedVendor, setExpandedVendor] = useState<number | null>(null);
-  const toast = useToast();
+  // Filters
+  const [selectedVendorId, setSelectedVendorId] = useState<number | ''>('');
+  const [quarter, setQuarter] = useState(QUARTERS[Math.floor(new Date().getMonth() / 3)].value);
+  const [year, setYear] = useState(currentYear);
 
+  // Data
+  const [payees, setPayees] = useState<PayeeOption[]>([]);
+  const [reportData, setReportData] = useState<TaxReportData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingPayees, setLoadingPayees] = useState(true);
+
+  const formRef = useRef<HTMLDivElement>(null);
+
+  // Fetch payee list on mount
   useEffect(() => {
-    setLoading(true);
-    fetch(`/api/reports/tax/bir-2307?quarter=${quarter}&year=${year}`)
-      .then(r => r.json())
-      .then(res => {
-        setData(res.data || []);
-        setPeriod(res.period);
-        setSchoolInfo(res.schoolInfo);
-        setLoading(false);
+    setLoadingPayees(true);
+    fetch('/api/payees')
+      .then((r) => r.json())
+      .then((data: unknown) => {
+        const list = Array.isArray(data) ? data : [];
+        setPayees(
+          list.map((p: { id?: number; name?: string; tin?: string }) => ({
+            id: Number(p.id || 0),
+            name: String(p.name || ''),
+            tin: String(p.tin || ''),
+          }))
+        );
       })
-      .catch(() => {
-        toast.error('Failed to load BIR 2307 data');
-        setLoading(false);
-      });
-  }, [quarter, year]);
+      .catch(() => setPayees([]))
+      .finally(() => setLoadingPayees(false));
+  }, []);
 
-  const filtered = data.filter(v =>
-    !vendorSearch ||
-    v.vendor_name.toLowerCase().includes(vendorSearch.toLowerCase()) ||
-    v.tin?.toLowerCase().includes(vendorSearch.toLowerCase()) ||
-    v.vendor_code?.toLowerCase().includes(vendorSearch.toLowerCase())
-  );
-
-  const totalGross = filtered.reduce((s, v) => s + v.total_gross, 0);
-  const totalWHT = filtered.reduce((s, v) => s + v.total_wht, 0);
-
-  function handleExportExcel() {
-    const rows = filtered.flatMap(v =>
-      v.transactions.map(t => ({
-        'Vendor': v.vendor_name,
-        'TIN': v.tin || '',
-        'Reference': t.reference,
-        'Date': t.date,
-        'Description': t.description,
-        'Gross Amount': t.gross,
-        'Tax Rate (%)': t.tax_rate,
-        'Tax Withheld': t.wht,
-        'ATC': getATCCode(t.tax_rate),
-      }))
-    );
-    if (rows.length === 0) {
-      toast.error('No data to export');
+  // Fetch report data when filters change
+  const fetchReport = useCallback(() => {
+    if (!selectedVendorId) {
+      setReportData(null);
       return;
     }
-    exportToExcel(rows, `BIR-2307-${quarter}-${year}`, `BIR 2307 - ${quarter} ${year}`);
-    toast.success('Exported to Excel');
-  }
 
-  function generate2307(vendor: WHT2307) {
-    if (!schoolInfo || !period) return;
+    const q = QUARTERS.find((qr) => qr.value === quarter)!;
+    const dateFrom = `${year}-${q.from}`;
+    const dateTo = `${year}-${q.to}`;
 
-    const quarterMonths: Record<string, string> = {
-      'Q1': 'January 1 - March 31',
-      'Q2': 'April 1 - June 30',
-      'Q3': 'July 1 - September 30',
-      'Q4': 'October 1 - December 31',
-    };
-
-    // Group transactions by ATC
-    const byATC: Record<string, { atc: string; desc: string; gross: number; wht: number }> = {};
-    vendor.transactions.forEach(t => {
-      const atc = getATCCode(t.tax_rate);
-      if (!byATC[atc]) {
-        byATC[atc] = { atc, desc: getATCDescription(atc), gross: 0, wht: 0 };
-      }
-      byATC[atc].gross += t.gross;
-      byATC[atc].wht += t.wht;
+    setLoading(true);
+    const params = new URLSearchParams({
+      type: 'bir-2307',
+      vendor_id: String(selectedVendorId),
+      quarter,
+      date_from: dateFrom,
+      date_to: dateTo,
     });
 
-    const atcRows = Object.values(byATC).map(row =>
-      `<tr>
-        <td style="font-family:monospace;font-weight:600">${row.atc}</td>
-        <td>${row.desc}</td>
-        <td class="amount">${formatCurrency(row.gross)}</td>
-        <td class="amount">${formatCurrency(row.wht)}</td>
-      </tr>`
-    ).join('');
+    fetch(`/api/reports/tax?${params}`)
+      .then((r) => r.json())
+      .then((data: TaxReportData) => setReportData(data))
+      .catch(() => setReportData(null))
+      .finally(() => setLoading(false));
+  }, [selectedVendorId, quarter, year]);
 
-    const txnRows = vendor.transactions.map(t =>
-      `<tr>
-        <td>${t.date}</td>
-        <td>${t.reference}</td>
-        <td>${t.description}</td>
-        <td class="amount">${formatCurrency(t.gross)}</td>
-        <td style="text-align:center">${t.tax_rate}%</td>
-        <td class="amount">${formatCurrency(t.wht)}</td>
-      </tr>`
-    ).join('');
+  useEffect(() => {
+    fetchReport();
+  }, [fetchReport]);
 
-    const content = `
-      <div style="border:2px solid #1e3a5f;padding:16px;margin-bottom:16px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:12px">
-          <div style="flex:1">
-            <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px">Payor (Withholding Agent)</div>
-            <div style="font-weight:700;font-size:13px;margin-top:2px">${schoolInfo.name}</div>
-            <div style="font-size:11px;color:#444">${schoolInfo.address}</div>
-            <div style="font-size:11px;font-family:monospace;margin-top:4px">TIN: ${schoolInfo.tin}</div>
-          </div>
-          <div style="flex:1;text-align:right">
-            <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px">Period Covered</div>
-            <div style="font-weight:600;font-size:12px;margin-top:2px">${quarterMonths[period.quarter]} ${period.year}</div>
-          </div>
-        </div>
-        <div style="border-top:1px solid #d0d7de;padding-top:12px">
-          <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px">Payee (Supplier/Vendor)</div>
-          <div style="font-weight:700;font-size:13px;margin-top:2px">${vendor.vendor_name}</div>
-          <div style="font-size:11px;color:#444">${vendor.address || 'Address on file'}</div>
-          <div style="font-size:11px;font-family:monospace;margin-top:4px">TIN: ${vendor.tin || 'N/A'}</div>
-        </div>
-      </div>
+  // Derive the selected vendor from reportData
+  const selectedVendor =
+    reportData?.vendors?.find((v) => v.vendor_id === selectedVendorId) ?? null;
+  const payorInfo: PayorInfo = reportData?.payorInfo ?? {
+    name: 'OrangeApps Academy',
+    tin: '123-456-789-000',
+    address: 'Metro Manila, Philippines',
+  };
 
-      <h3 style="font-size:11px;font-weight:700;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">
-        Schedule of Income Payments and Taxes Withheld
-      </h3>
-      <table>
-        <thead>
-          <tr>
-            <th style="width:80px">ATC</th>
-            <th>Nature of Income Payment</th>
-            <th class="text-right" style="width:120px">Amount of Income</th>
-            <th class="text-right" style="width:120px">Tax Withheld</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${atcRows}
-        </tbody>
-        <tfoot>
-          <tr class="total-row">
-            <td colspan="2" style="font-weight:700">TOTAL</td>
-            <td class="amount" style="font-weight:700">${formatCurrency(vendor.total_gross)}</td>
-            <td class="amount" style="font-weight:700">${formatCurrency(vendor.total_wht)}</td>
-          </tr>
-        </tfoot>
-      </table>
+  // Compute monthly breakdown for the form
+  const quarterInfo = QUARTERS.find((q) => q.value === quarter)!;
 
-      <h3 style="font-size:11px;font-weight:700;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.3px;margin:20px 0 6px">
-        Transaction Details
-      </h3>
-      <table>
-        <thead>
-          <tr>
-            <th style="width:80px">Date</th>
-            <th style="width:90px">Reference</th>
-            <th>Description</th>
-            <th class="text-right" style="width:100px">Gross</th>
-            <th style="width:60px;text-align:center">Rate</th>
-            <th class="text-right" style="width:100px">WHT</th>
-          </tr>
-        </thead>
-        <tbody>${txnRows}</tbody>
-      </table>
-    `;
+  const monthlyData = quarterInfo.months.map((monthName, idx) => {
+    if (!selectedVendor)
+      return { month: monthName, atc: '', nature: '', amount: 0, tax: 0 };
 
-    printDocument({
-      title: 'BIR Form 2307',
-      subtitle: 'Certificate of Creditable Tax Withheld at Source',
-      documentNumber: `2307-${vendor.vendor_code || vendor.vendor_id}-${period.quarter}${period.year}`,
-      date: new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }),
-      content,
+    const monthNum = QUARTERS.findIndex((q) => q.value === quarter) * 3 + idx + 1;
+    const monthPayments = selectedVendor.payments.filter((p) => {
+      const d = new Date(p.date);
+      return d.getMonth() + 1 === monthNum && d.getFullYear() === year;
     });
-  }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
-      </div>
+    const amount = monthPayments.reduce((s, p) => s + p.gross_amount, 0);
+    const tax = monthPayments.reduce((s, p) => s + p.withholding_tax, 0);
+    const atc = monthPayments[0]?.atc ?? '';
+    const nature = monthPayments[0]?.description ?? '';
+
+    return { month: monthName, atc, nature, amount, tax };
+  });
+
+  const totalAmount = monthlyData.reduce((s, r) => s + r.amount, 0);
+  const totalTax = monthlyData.reduce((s, r) => s + r.tax, 0);
+
+  // Print handler
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // Export to Excel
+  const handleExport = () => {
+    if (!selectedVendor) return;
+
+    const rows: Record<string, string | number>[] = monthlyData.map((m) => ({
+      Month: m.month as string,
+      ATC: m.atc,
+      'Nature of Income Payment': m.nature,
+      'Amount of Income Payment': m.amount,
+      'Tax Withheld': m.tax,
+    }));
+
+    rows.push({
+      Month: 'TOTAL',
+      ATC: '',
+      'Nature of Income Payment': '',
+      'Amount of Income Payment': totalAmount,
+      'Tax Withheld': totalTax,
+    });
+
+    const vendorName = selectedVendor.vendor_name.replace(/[^a-zA-Z0-9 ]/g, '');
+    exportToExcel(
+      rows,
+      `BIR-2307_${vendorName}_${quarter}_${year}`,
+      `BIR 2307 - ${selectedVendor.vendor_name} - ${quarter} ${year}`
     );
-  }
+  };
+
+  // All-vendor summary from reportData (for the quick-select list)
+  const allVendors = reportData?.vendors ?? [];
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <FileText size={24} className="text-primary-600" /> BIR Form 2307
-          </h1>
-          <p className="text-sm text-gray-500">Certificate of Creditable Tax Withheld at Source</p>
-        </div>
-        <button onClick={handleExportExcel} className="btn-secondary text-xs self-start sm:self-auto">
-          <Download size={14} /> Export All to Excel
-        </button>
-      </div>
+    <>
+      {/* Print-only styles: hide everything except the BIR form */}
+      <style jsx global>{`
+        @media print {
+          /* Hide sidebar, header, nav, filters, and everything marked no-print */
+          body > *:not(#__next),
+          nav,
+          header,
+          aside,
+          footer,
+          .no-print {
+            display: none !important;
+          }
+          /* Walk down Next.js wrappers to reach our print root */
+          #__next > * {
+            display: none !important;
+          }
+          #__next {
+            display: block !important;
+          }
+          /* The print root itself must be visible */
+          #bir-2307-print-root,
+          #bir-2307-print-root * {
+            visibility: visible !important;
+          }
+          #bir-2307-print-root {
+            display: block !important;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+          }
+          @page {
+            size: A4 portrait;
+            margin: 12mm;
+          }
+        }
+      `}</style>
 
-      {/* Filters */}
-      <div className="card p-3 sm:p-4">
-        <div className="flex flex-wrap gap-3 items-end">
-          <div className="flex items-center gap-2">
-            <Filter size={14} className="text-gray-400" />
-            <div>
-              <label className="text-[10px] text-gray-500 uppercase tracking-wider">Quarter</label>
-              <select className="input-field text-sm" value={quarter} onChange={e => setQuarter(e.target.value)}>
-                {QUARTERS.map(q => <option key={q} value={q}>{q}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-[10px] text-gray-500 uppercase tracking-wider">Year</label>
-              <select className="input-field text-sm" value={year} onChange={e => setYear(e.target.value)}>
-                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
-            </div>
+      <div className="space-y-6">
+        {/* ---------------------------------------------------------------- */}
+        {/* Page Header                                                      */}
+        {/* ---------------------------------------------------------------- */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <FileText size={24} className="text-primary-600" />
+              BIR Form 2307 Generator
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Generate Certificate of Creditable Tax Withheld at Source
+            </p>
           </div>
-          <div className="flex-1 min-w-[200px]">
-            <label className="text-[10px] text-gray-500 uppercase tracking-wider">Search Vendor</label>
-            <div className="relative">
-              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                className="input-field text-sm pl-8 w-full"
-                placeholder="Search by name, TIN, or code..."
-                value={vendorSearch}
-                onChange={e => setVendorSearch(e.target.value)}
-              />
-            </div>
+          <div className="flex gap-2">
+            <button
+              className="btn-secondary text-xs sm:text-sm"
+              onClick={handleExport}
+              disabled={!selectedVendor}
+            >
+              <Download size={16} /> Export to Excel
+            </button>
+            <button
+              className="btn-primary text-xs sm:text-sm"
+              onClick={handlePrint}
+              disabled={!selectedVendor}
+            >
+              <Printer size={16} /> Print 2307
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="stat-card !p-4">
-          <p className="text-xs text-gray-500">Total Vendors</p>
-          <p className="text-lg font-bold text-gray-900">{filtered.length}</p>
-        </div>
-        <div className="stat-card !p-4">
-          <p className="text-xs text-gray-500">Total Gross Amount</p>
-          <p className="text-lg font-bold text-blue-600">{formatCurrency(totalGross)}</p>
-        </div>
-        <div className="stat-card !p-4 border-2 border-blue-200">
-          <p className="text-xs text-gray-500">Total Tax Withheld</p>
-          <p className="text-lg font-bold text-red-600">{formatCurrency(totalWHT)}</p>
-        </div>
-      </div>
-
-      {/* Vendor List */}
-      {filtered.length === 0 ? (
-        <div className="card p-8 text-center">
-          <FileText size={40} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-gray-500 font-medium">No withholding tax records found</p>
-          <p className="text-sm text-gray-400 mt-1">No bills with withholding tax for {quarter} {year}</p>
-        </div>
-      ) : (
-        <div className="card">
+        {/* ---------------------------------------------------------------- */}
+        {/* Filters                                                          */}
+        {/* ---------------------------------------------------------------- */}
+        <div className="card no-print">
           <div className="card-header">
-            <h3 className="font-semibold">Vendors with Withholding Tax - {quarter} {year}</h3>
+            <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+              <FileText size={18} /> Report Filters
+            </h2>
           </div>
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Payee / Vendor</th>
-                  <th className="hidden sm:table-cell">TIN</th>
-                  <th className="text-right">Gross Amount</th>
-                  <th className="text-right">Tax Withheld</th>
-                  <th className="text-right hidden sm:table-cell">Transactions</th>
-                  <th className="text-center" style={{ width: 120 }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(vendor => (
-                  <tr key={vendor.vendor_id}>
-                    <td>
-                      <button
-                        className="text-left hover:text-primary-600 transition-colors"
-                        onClick={() => setExpandedVendor(expandedVendor === vendor.vendor_id ? null : vendor.vendor_id)}
-                      >
-                        <div className="font-medium text-sm">{vendor.vendor_name}</div>
-                        <div className="text-[11px] text-gray-400">{vendor.vendor_code}</div>
-                      </button>
-                    </td>
-                    <td className="text-xs text-gray-500 font-mono hidden sm:table-cell">{vendor.tin || 'N/A'}</td>
-                    <td className="text-right font-medium">{formatCurrency(vendor.total_gross)}</td>
-                    <td className="text-right font-medium text-red-600">{formatCurrency(vendor.total_wht)}</td>
-                    <td className="text-right text-gray-500 hidden sm:table-cell">{vendor.transactions.length}</td>
-                    <td className="text-center">
-                      <button
-                        onClick={() => generate2307(vendor)}
-                        className="btn-primary text-[10px] py-1 px-2.5 inline-flex items-center gap-1"
-                      >
-                        <Printer size={11} /> Generate 2307
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="bg-gray-50 font-bold">
-                  <td className="px-4 py-3">TOTAL ({filtered.length} vendors)</td>
-                  <td className="hidden sm:table-cell"></td>
-                  <td className="text-right px-4 py-3">{formatCurrency(totalGross)}</td>
-                  <td className="text-right px-4 py-3 text-red-600">{formatCurrency(totalWHT)}</td>
-                  <td className="hidden sm:table-cell"></td>
-                  <td></td>
-                </tr>
-              </tfoot>
-            </table>
+          <div className="card-body">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Vendor */}
+              <div>
+                <label className="label">Vendor / Payee</label>
+                <select
+                  className="select-field w-full"
+                  value={selectedVendorId}
+                  onChange={(e) =>
+                    setSelectedVendorId(e.target.value ? Number(e.target.value) : '')
+                  }
+                  disabled={loadingPayees}
+                >
+                  <option value="">-- Select Vendor --</option>
+                  {payees.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                      {p.tin ? ` (${p.tin})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Quarter */}
+              <div>
+                <label className="label">Quarter</label>
+                <select
+                  className="select-field w-full"
+                  value={quarter}
+                  onChange={(e) => setQuarter(e.target.value as 'Q1' | 'Q2' | 'Q3' | 'Q4')}
+                >
+                  {QUARTERS.map((q) => (
+                    <option key={q.value} value={q.value}>
+                      {q.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Year */}
+              <div>
+                <label className="label">Year</label>
+                <select
+                  className="select-field w-full"
+                  value={year}
+                  onChange={(e) => setYear(Number(e.target.value))}
+                >
+                  {YEARS.map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
         </div>
-      )}
 
-      {/* Expanded Transaction Detail */}
-      {expandedVendor && (() => {
-        const vendor = filtered.find(v => v.vendor_id === expandedVendor);
-        if (!vendor) return null;
-        return (
-          <div className="card border-primary-200">
-            <div className="card-header bg-primary-50 flex items-center justify-between">
-              <h3 className="font-semibold text-primary-800">
-                Transaction Details - {vendor.vendor_name}
-              </h3>
-              <button className="btn-secondary text-xs" onClick={() => setExpandedVendor(null)}>
-                Close
-              </button>
+        {/* ---------------------------------------------------------------- */}
+        {/* Stat Cards                                                       */}
+        {/* ---------------------------------------------------------------- */}
+        {selectedVendor && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 no-print">
+            <div className="stat-card">
+              <div className="text-sm text-gray-500">Total Gross Payments</div>
+              <div className="text-2xl font-bold text-gray-900">
+                {formatCurrency(totalAmount)}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                {quarter} {year}
+              </div>
             </div>
-            <div className="table-container">
-              <table className="data-table text-xs sm:text-sm">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Reference</th>
-                    <th className="hidden sm:table-cell">Description</th>
-                    <th className="text-right">Gross</th>
-                    <th className="text-center">Rate</th>
-                    <th className="text-center hidden sm:table-cell">ATC</th>
-                    <th className="text-right">WHT</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {vendor.transactions.map((t, i) => (
-                    <tr key={i}>
-                      <td className="text-gray-600">{formatDate(t.date)}</td>
-                      <td className="font-mono text-xs">{t.reference}</td>
-                      <td className="hidden sm:table-cell text-gray-600 max-w-[200px] truncate">{t.description}</td>
-                      <td className="text-right">{formatCurrency(t.gross)}</td>
-                      <td className="text-center">{t.tax_rate}%</td>
-                      <td className="text-center font-mono text-xs hidden sm:table-cell">{getATCCode(t.tax_rate)}</td>
-                      <td className="text-right font-medium text-red-600">{formatCurrency(t.wht)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-primary-50 font-bold">
-                    <td colSpan={3} className="px-4 py-2">Total</td>
-                    <td className="text-right px-4 py-2">{formatCurrency(vendor.total_gross)}</td>
-                    <td></td>
-                    <td className="hidden sm:table-cell"></td>
-                    <td className="text-right px-4 py-2 text-red-600">{formatCurrency(vendor.total_wht)}</td>
-                  </tr>
-                </tfoot>
-              </table>
+            <div className="stat-card">
+              <div className="text-sm text-gray-500">Total Tax Withheld</div>
+              <div className="text-2xl font-bold text-red-600">
+                {formatCurrency(totalTax)}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                {quarter} {year}
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="text-sm text-gray-500">Effective Tax Rate</div>
+              <div className="text-2xl font-bold text-gray-900">
+                {totalAmount > 0
+                  ? ((totalTax / totalAmount) * 100).toFixed(2)
+                  : '0.00'}
+                %
+              </div>
+              <div className="text-xs text-gray-400 mt-1">Withholding rate</div>
             </div>
           </div>
-        );
-      })()}
-    </div>
+        )}
+
+        {/* Loading */}
+        {loading && (
+          <div className="card no-print">
+            <div className="card-body text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-3" />
+              <p className="text-gray-400">Loading report data...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Empty states */}
+        {!loading && !selectedVendor && selectedVendorId !== '' && (
+          <div className="card no-print">
+            <div className="card-body text-center py-12 text-gray-400">
+              No withholding tax data found for the selected vendor in {quarter}{' '}
+              {year}.
+            </div>
+          </div>
+        )}
+
+        {!loading && selectedVendorId === '' && (
+          <div className="card no-print">
+            <div className="card-body text-center py-12 text-gray-400">
+              <FileText size={40} className="mx-auto mb-3 text-gray-300" />
+              Select a vendor above to generate BIR Form 2307, or pick one from
+              the vendor list below.
+            </div>
+          </div>
+        )}
+
+        {/* ================================================================ */}
+        {/* BIR Form 2307 -- Printable Section                               */}
+        {/* ================================================================ */}
+        {selectedVendor && !loading && (
+          <div id="bir-2307-print-root" ref={formRef}>
+            <div
+              className="bg-white border border-gray-300 rounded-lg mx-auto"
+              style={{ maxWidth: 850, fontFamily: 'Arial, Helvetica, sans-serif' }}
+            >
+              {/* Form Title */}
+              <div className="border-b-2 border-black p-5 text-center">
+                <p className="text-[10px] text-gray-500 mb-0.5">
+                  Republic of the Philippines
+                </p>
+                <p className="text-[10px] text-gray-500 mb-1">
+                  Department of Finance
+                </p>
+                <p className="text-xs font-bold text-gray-700 mb-3">
+                  BUREAU OF INTERNAL REVENUE
+                </p>
+                <h2 className="text-lg font-bold tracking-wide">
+                  BIR FORM 2307
+                </h2>
+                <p className="text-sm font-semibold mt-1">
+                  Certificate of Creditable Tax Withheld at Source
+                </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  For the {quarter} Quarter, Calendar Year {year}
+                </p>
+              </div>
+
+              {/* Part I -- Payee Information */}
+              <div className="border-b border-gray-300 p-4">
+                <h3 className="text-xs font-bold bg-gray-100 px-3 py-1.5 -mx-4 -mt-4 mb-4 border-b border-gray-300 uppercase tracking-wider">
+                  Part I &mdash; Payee Information
+                </h3>
+                <div className="grid grid-cols-12 gap-y-3 text-sm">
+                  <div className="col-span-3 text-gray-500 text-xs pt-0.5">
+                    1. TIN
+                  </div>
+                  <div className="col-span-9 font-medium border-b border-dotted border-gray-400 pb-1 font-mono">
+                    {selectedVendor.tin || '---'}
+                  </div>
+
+                  <div className="col-span-3 text-gray-500 text-xs pt-0.5">
+                    2. Payee Name
+                  </div>
+                  <div className="col-span-9 font-medium border-b border-dotted border-gray-400 pb-1">
+                    {selectedVendor.vendor_name}
+                  </div>
+
+                  <div className="col-span-3 text-gray-500 text-xs pt-0.5">
+                    3. Registered Address
+                  </div>
+                  <div className="col-span-9 font-medium border-b border-dotted border-gray-400 pb-1">
+                    {selectedVendor.address || '---'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Part II -- Payor Information */}
+              <div className="border-b border-gray-300 p-4">
+                <h3 className="text-xs font-bold bg-gray-100 px-3 py-1.5 -mx-4 -mt-4 mb-4 border-b border-gray-300 uppercase tracking-wider">
+                  Part II &mdash; Payor Information
+                </h3>
+                <div className="grid grid-cols-12 gap-y-3 text-sm">
+                  <div className="col-span-3 text-gray-500 text-xs pt-0.5">
+                    4. TIN
+                  </div>
+                  <div className="col-span-9 font-medium border-b border-dotted border-gray-400 pb-1 font-mono">
+                    {payorInfo.tin}
+                  </div>
+
+                  <div className="col-span-3 text-gray-500 text-xs pt-0.5">
+                    5. Payor Name
+                  </div>
+                  <div className="col-span-9 font-medium border-b border-dotted border-gray-400 pb-1">
+                    {payorInfo.name}
+                  </div>
+
+                  <div className="col-span-3 text-gray-500 text-xs pt-0.5">
+                    6. Registered Address
+                  </div>
+                  <div className="col-span-9 font-medium border-b border-dotted border-gray-400 pb-1">
+                    {payorInfo.address}
+                  </div>
+                </div>
+              </div>
+
+              {/* Part III -- Details of Monthly Income Payments */}
+              <div className="p-4">
+                <h3 className="text-xs font-bold bg-gray-100 px-3 py-1.5 -mx-4 -mt-4 mb-4 border-b border-gray-300 uppercase tracking-wider">
+                  Part III &mdash; Details of Monthly Income Payments and Taxes
+                  Withheld
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-sm">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="border border-gray-300 px-3 py-2 text-left text-xs font-semibold text-gray-700">
+                          Month
+                        </th>
+                        <th className="border border-gray-300 px-3 py-2 text-left text-xs font-semibold text-gray-700">
+                          ATC
+                        </th>
+                        <th className="border border-gray-300 px-3 py-2 text-left text-xs font-semibold text-gray-700">
+                          Nature of Income Payment
+                        </th>
+                        <th className="border border-gray-300 px-3 py-2 text-right text-xs font-semibold text-gray-700">
+                          Amount of Income Payment
+                        </th>
+                        <th className="border border-gray-300 px-3 py-2 text-right text-xs font-semibold text-gray-700">
+                          Tax Withheld
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {monthlyData.map((row) => (
+                        <tr key={row.month}>
+                          <td className="border border-gray-300 px-3 py-2 font-medium">
+                            {row.month}
+                          </td>
+                          <td className="border border-gray-300 px-3 py-2 text-xs font-mono">
+                            {row.atc || '\u2014'}
+                          </td>
+                          <td className="border border-gray-300 px-3 py-2 text-xs">
+                            {row.nature || '\u2014'}
+                          </td>
+                          <td className="border border-gray-300 px-3 py-2 text-right">
+                            {formatCurrency(row.amount)}
+                          </td>
+                          <td className="border border-gray-300 px-3 py-2 text-right">
+                            {formatCurrency(row.tax)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-gray-50 font-bold">
+                        <td
+                          colSpan={3}
+                          className="border border-gray-300 px-3 py-2 text-right text-xs uppercase tracking-wider"
+                        >
+                          Total
+                        </td>
+                        <td className="border border-gray-300 px-3 py-2 text-right">
+                          {formatCurrency(totalAmount)}
+                        </td>
+                        <td className="border border-gray-300 px-3 py-2 text-right">
+                          {formatCurrency(totalTax)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+
+                {/* Signature block */}
+                <div className="grid grid-cols-2 gap-8 mt-10 pt-4 border-t border-gray-200">
+                  <div className="text-center">
+                    <div className="border-b border-black mb-1 h-10" />
+                    <p className="text-xs text-gray-500">
+                      Signature of Payor / Authorized Representative
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">{payorInfo.name}</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="border-b border-black mb-1 h-10" />
+                    <p className="text-xs text-gray-500">Date Signed</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================================================================ */}
+        {/* Vendor Tax Withholding Summary List                              */}
+        {/* ================================================================ */}
+        <div className="card no-print">
+          <div className="card-header flex items-center justify-between">
+            <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+              <Users size={18} /> Vendor Tax Withholding Summary
+            </h2>
+            {allVendors.length > 0 && (
+              <span className="badge bg-blue-100 text-blue-700">
+                {allVendors.length} vendor{allVendors.length !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+          <div className="card-body p-0">
+            {allVendors.length === 0 && !loading ? (
+              <div className="text-center py-10 text-gray-400 text-sm">
+                {selectedVendorId
+                  ? 'No vendor data available for this period.'
+                  : 'Select a vendor and period above to view the summary.'}
+              </div>
+            ) : (
+              <div className="table-container">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Vendor</th>
+                      <th>TIN</th>
+                      <th className="text-right">Total Gross</th>
+                      <th className="text-right">Total Tax Withheld</th>
+                      <th className="text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allVendors.map((v) => (
+                      <tr
+                        key={v.vendor_id}
+                        className={
+                          v.vendor_id === selectedVendorId ? 'bg-blue-50' : ''
+                        }
+                      >
+                        <td>
+                          <div className="flex items-center gap-2">
+                            <Building2 size={14} className="text-blue-500" />
+                            <span className="font-medium">{v.vendor_name}</span>
+                          </div>
+                        </td>
+                        <td className="text-xs font-mono">
+                          {v.tin || '\u2014'}
+                        </td>
+                        <td className="text-right font-medium">
+                          {formatCurrency(v.total_gross)}
+                        </td>
+                        <td className="text-right font-medium text-red-600">
+                          {formatCurrency(v.total_tax)}
+                        </td>
+                        <td className="text-center">
+                          <button
+                            className="btn-secondary text-xs inline-flex items-center gap-1"
+                            onClick={() => setSelectedVendorId(v.vendor_id)}
+                          >
+                            <FileText size={14} /> Generate
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
