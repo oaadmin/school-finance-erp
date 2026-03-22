@@ -6,8 +6,7 @@ import {
   LayoutDashboard, PieChart, Calculator, Table2, FileText, FilePlus,
   CheckSquare, CreditCard, Users, BarChart3, TrendingUp,
   Shield, Settings, GraduationCap, ChevronDown, BookOpen,
-  Receipt, Landmark, FileSpreadsheet, Building2, DollarSign,
-  UserCheck, Clock, Layers
+  Landmark, FileSpreadsheet, Building2, UserCheck, Clock, Layers
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -17,78 +16,81 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Finance Dashboard', href: '/finance-dashboard', icon: LayoutDashboard },
+  { type: 'divider', label: 'OVERVIEW' },
+  { label: 'Dashboard', href: '/finance-dashboard', icon: LayoutDashboard },
+  { label: 'Accounting Home', href: '/accounting/dashboard', icon: BookOpen },
+
+  { type: 'divider', label: 'BUDGETING' },
   { label: 'Budget Dashboard', href: '/budget-dashboard', icon: PieChart },
-  { type: 'divider', label: 'BUDGET MANAGEMENT' },
   { label: 'Budget Planning', href: '/budget-planning', icon: Calculator },
   { label: 'Budget Allocation', href: '/budget-allocation', icon: Table2 },
-  { type: 'divider', label: 'DISBURSEMENTS' },
-  { label: 'All Requests', href: '/disbursements', icon: FileText },
-  { label: 'New Request', href: '/disbursements/create', icon: FilePlus },
-  { label: 'Approval Queue', href: '/approval-queue', icon: CheckSquare },
-  { label: 'Payments', href: '/payment-processing', icon: CreditCard },
-  { type: 'divider', label: 'ACCOUNTING' },
-  { label: 'Accounting Home', href: '/accounting/dashboard', icon: BookOpen },
+
+  { type: 'divider', label: 'ACCOUNTS PAYABLE' },
   {
-    label: 'General Ledger', icon: Layers,
+    label: 'Payables', icon: Building2,
+    children: [
+      { label: 'Disbursement Requests', href: '/disbursements' },
+      { label: 'New Request', href: '/disbursements/create' },
+      { label: 'Approval Queue', href: '/approval-queue' },
+      { label: 'Bills', href: '/accounting/ap/bills' },
+      { label: 'Payments', href: '/payment-processing' },
+      { label: 'Supplier Payments', href: '/accounting/ap/payments' },
+      { label: 'AP Aging', href: '/accounting/ap/aging' },
+    ],
+  },
+  { label: 'Vendors / Payees', href: '/vendors', icon: Users },
+
+  { type: 'divider', label: 'ACCOUNTS RECEIVABLE' },
+  {
+    label: 'Receivables', icon: UserCheck,
+    children: [
+      { label: 'Customers', href: '/accounting/ar/customers' },
+      { label: 'Invoices / Charges', href: '/accounting/ar/invoices' },
+      { label: 'Collections / Receipts', href: '/accounting/ar/collections' },
+      { label: 'AR Aging', href: '/accounting/ar/aging' },
+      { label: 'Statement of Account', href: '/accounting/ar/soa' },
+    ],
+  },
+
+  { type: 'divider', label: 'GENERAL LEDGER' },
+  {
+    label: 'Ledger', icon: Layers,
     children: [
       { label: 'Chart of Accounts', href: '/accounting/chart-of-accounts' },
       { label: 'Journal Entries', href: '/accounting/journal-entries' },
       { label: 'Recurring Journals', href: '/accounting/recurring-journals' },
       { label: 'Ledger Inquiry', href: '/accounting/ledger-inquiry' },
+      { label: 'Period Closing', href: '/accounting/period-closing' },
     ],
   },
-  {
-    label: 'Accounts Payable', icon: Building2,
-    children: [
-      { label: 'Bills', href: '/accounting/ap/bills' },
-      { label: 'Supplier Payments', href: '/accounting/ap/payments' },
-      { label: 'AP Aging', href: '/accounting/ap/aging' },
-    ],
-  },
-  {
-    label: 'Accounts Receivable', icon: UserCheck,
-    children: [
-      { label: 'Customers', href: '/accounting/ar/customers' },
-      { label: 'Invoices', href: '/accounting/ar/invoices' },
-      { label: 'Collections', href: '/accounting/ar/collections' },
-      { label: 'AR Aging', href: '/accounting/ar/aging' },
-      { label: 'Statement of Account', href: '/accounting/ar/soa' },
-    ],
-  },
-  { label: 'Period Closing', href: '/accounting/period-closing', icon: Clock },
-  { type: 'divider', label: 'MANAGEMENT' },
-  { label: 'Vendors / Payees', href: '/vendors', icon: Users },
+
   { type: 'divider', label: 'REPORTS' },
   {
-    label: 'Disbursement Reports', icon: FileSpreadsheet,
+    label: 'Financial Reports', icon: BarChart3,
+    children: [
+      { label: 'Trial Balance', href: '/reports/accounting/trial-balance' },
+      { label: 'Balance Sheet', href: '/reports/accounting/balance-sheet' },
+      { label: 'Income Statement', href: '/reports/accounting/income-statement' },
+      { label: 'Cash Flow', href: '/reports/accounting/cash-flow' },
+      { label: 'General Ledger', href: '/reports/accounting/general-ledger' },
+      { label: 'Schedule of Expenses', href: '/reports/accounting/expense-schedule' },
+    ],
+  },
+  {
+    label: 'Budget Reports', icon: FileSpreadsheet,
     children: [
       { label: 'Budget vs Actual', href: '/reports/budget-vs-actual' },
       { label: 'Monthly Variance', href: '/reports/monthly-variance' },
     ],
   },
   {
-    label: 'Accounting Reports', icon: BarChart3,
+    label: 'Tax & BIR', icon: Landmark,
     children: [
-      { label: 'Trial Balance', href: '/reports/accounting/trial-balance' },
-      { label: 'Balance Sheet', href: '/reports/accounting/balance-sheet' },
-      { label: 'Income Statement', href: '/reports/accounting/income-statement' },
-      { label: 'Cash Flow Statement', href: '/reports/accounting/cash-flow' },
-      { label: 'General Ledger', href: '/reports/accounting/general-ledger' },
-      { label: 'Subsidiary Ledger', href: '/reports/accounting/subsidiary-ledger' },
-      { label: 'Journal Entries', href: '/reports/accounting/journal-entries' },
-      { label: 'Schedule of Expenses', href: '/reports/accounting/expense-schedule' },
-      { label: 'AP Aging', href: '/reports/accounting/ap-aging' },
-      { label: 'AR Aging', href: '/reports/accounting/ar-aging' },
+      { label: 'BIR Reports', href: '/reports/tax/bir-reports' },
+      { label: 'Tax Summary', href: '/reports/tax/tax-summary' },
     ],
   },
-  {
-    label: 'BIR & Tax Reports', icon: Landmark,
-    children: [
-      { label: 'BIR Financial Reports', href: '/reports/tax/bir-reports' },
-      { label: 'Tax Reports', href: '/reports/tax/tax-summary' },
-    ],
-  },
+
   { type: 'divider', label: 'SYSTEM' },
   { label: 'Audit Trail', href: '/audit-trail', icon: Shield },
   { label: 'Settings', href: '/settings', icon: Settings },
