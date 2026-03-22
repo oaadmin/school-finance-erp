@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { formatCurrency, getStatusColor, getStatusLabel, formatDate } from '@/lib/utils';
+import { useToast } from '@/components/ui/Toast';
 import { ArrowLeft, CheckCircle, XCircle, RotateCcw, Send, CreditCard, FileText, Clock, User, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
@@ -21,6 +22,7 @@ interface DisbursementDetail {
 }
 
 export default function DisbursementDetail() {
+  const { success, error: showError } = useToast();
   const { id } = useParams();
   const router = useRouter();
   const [data, setData] = useState<DisbursementDetail | null>(null);
@@ -34,18 +36,39 @@ export default function DisbursementDetail() {
   useEffect(loadData, [id]);
 
   const handleApprovalAction = async (action: string) => {
-    await fetch(`/api/disbursements/${id}/approve`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, comments, approver_role: data?.current_approver_role, approver_id: 3 }),
-    });
+    try {
+      const res = await fetch(`/api/disbursements/${id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, comments, approver_role: data?.current_approver_role, approver_id: 3 }),
+      });
+      if (res.ok) {
+        const actionLabel = action === 'approved' ? 'Approved' : action === 'rejected' ? 'Rejected' : 'Returned';
+        success(`Request ${actionLabel}`, `Disbursement ${data?.request_number} has been ${actionLabel.toLowerCase()}.`);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showError('Action Failed', err.message || err.error || 'Could not process approval action.');
+      }
+    } catch (e) {
+      showError('Action Failed', 'Network error. Please try again.');
+    }
     setShowApprovalModal(null);
     setComments('');
     loadData();
   };
 
   const handleSubmit = async () => {
-    await fetch(`/api/disbursements/${id}/submit`, { method: 'POST' });
+    try {
+      const res = await fetch(`/api/disbursements/${id}/submit`, { method: 'POST' });
+      if (res.ok) {
+        success('Request Submitted', `Disbursement ${data?.request_number} has been submitted for approval.`);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showError('Submit Failed', err.message || err.error || 'Could not submit request.');
+      }
+    } catch (e) {
+      showError('Submit Failed', 'Network error. Please try again.');
+    }
     loadData();
   };
 

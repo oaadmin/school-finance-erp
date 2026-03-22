@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { useToast } from '@/components/ui/Toast';
 import { Receipt, Plus, Search, DollarSign, Hash, X } from 'lucide-react';
 import Link from 'next/link';
 
@@ -59,6 +60,7 @@ const methodLabel = (method: string): string => {
 };
 
 export default function CollectionsPage() {
+  const { success, error } = useToast();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState('');
@@ -94,10 +96,17 @@ export default function CollectionsPage() {
         body: JSON.stringify(form),
       });
       if (res.ok) {
+        const data = await res.json();
+        success('Collection Created', `Collection ${data.or_number || ''} has been recorded successfully.`);
         setShowModal(false);
         setForm({ customer_id: '', collection_date: new Date().toISOString().split('T')[0], payment_method: 'cash', amount_received: 0, reference_number: '', remarks: '' });
         loadCollections();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        error('Creation Failed', err.message || err.error || 'Could not create collection. Please try again.');
       }
+    } catch (e) {
+      error('Creation Failed', 'Network error. Please try again.');
     } finally {
       setSubmitting(false);
     }

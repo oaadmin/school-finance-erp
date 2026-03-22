@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { formatDate } from '@/lib/utils';
+import { useToast } from '@/components/ui/Toast';
 import { Lock, Unlock, AlertTriangle, CheckCircle, Clock, Calendar, X } from 'lucide-react';
 
 interface Period { id: number; period_name: string; school_year: string; start_date: string; end_date: string; status: string; closed_by: string; closed_date: string; notes: string; }
 
 export default function PeriodClosing() {
+  const { success, error } = useToast();
   const [periods, setPeriods] = useState<Period[]>([]);
   const [actionModal, setActionModal] = useState<{ period: Period; action: string } | null>(null);
 
@@ -17,11 +19,22 @@ export default function PeriodClosing() {
 
   const handleAction = async () => {
     if (!actionModal) return;
-    await fetch('/api/accounting/periods', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: actionModal.period.id, action: actionModal.action }),
-    });
+    try {
+      const res = await fetch('/api/accounting/periods', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: actionModal.period.id, action: actionModal.action }),
+      });
+      if (res.ok) {
+        const actionLabel = actionModal.action === 'close' ? 'Closed' : 'Reopened';
+        success(`Period ${actionLabel}`, `${actionModal.period.period_name} has been ${actionLabel.toLowerCase()}.`);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        error('Action Failed', err.message || err.error || `Could not ${actionModal.action} period.`);
+      }
+    } catch (e) {
+      error('Action Failed', 'Network error. Please try again.');
+    }
     setActionModal(null);
     loadData();
   };

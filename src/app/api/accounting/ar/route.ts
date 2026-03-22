@@ -277,6 +277,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (type === 'customers') {
+      const result = db.prepare(`
+        INSERT INTO customers (
+          customer_code, customer_type, name, campus, grade_level,
+          contact_person, email, phone, billing_address, tin,
+          is_active
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+      `).run(
+        body.customer_code,
+        body.customer_type || 'student',
+        body.name,
+        body.campus || 'Main',
+        body.grade_level || null,
+        body.contact_person || null,
+        body.email || null,
+        body.phone || null,
+        body.billing_address || null,
+        body.tin || null
+      );
+      return NextResponse.json(
+        { id: result.lastInsertRowid, customer_code: body.customer_code },
+        { status: 201 }
+      );
+    }
+
     return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 });
   } catch (error) {
     console.error('AR POST error:', error);

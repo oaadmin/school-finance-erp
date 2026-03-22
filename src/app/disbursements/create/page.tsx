@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency } from '@/lib/utils';
+import { useToast } from '@/components/ui/Toast';
 import { Save, Send, Plus, Trash2, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface LineItem { description: string; quantity: number; unit_cost: number; amount: number; account_code: string; tax_code: string; remarks: string; }
 
 export default function CreateDisbursement() {
+  const { success, error } = useToast();
   const router = useRouter();
   const [lookups, setLookups] = useState<{ departments: Array<{ id: number; name: string }>; categories: Array<{ id: number; name: string }>; fundSources: Array<{ id: number; name: string }>; costCenters: Array<{ id: number; name: string }> }>({ departments: [], categories: [], fundSources: [], costCenters: [] });
   const [payees, setPayees] = useState<Array<{ id: number; name: string; type: string }>>([]);
@@ -65,31 +67,41 @@ export default function CreateDisbursement() {
   };
 
   const handleSubmit = async (submitForApproval: boolean) => {
-    const payload = {
-      ...form,
-      payee_id: form.payee_id ? Number(form.payee_id) : null,
-      department_id: Number(form.department_id),
-      category_id: Number(form.category_id),
-      cost_center_id: form.cost_center_id ? Number(form.cost_center_id) : null,
-      fund_source_id: form.fund_source_id ? Number(form.fund_source_id) : null,
-      budget_id: form.budget_id ? Number(form.budget_id) : null,
-      amount: totalAmount,
-      items,
-      status: 'draft',
-    };
+    try {
+      const payload = {
+        ...form,
+        payee_id: form.payee_id ? Number(form.payee_id) : null,
+        department_id: Number(form.department_id),
+        category_id: Number(form.category_id),
+        cost_center_id: form.cost_center_id ? Number(form.cost_center_id) : null,
+        fund_source_id: form.fund_source_id ? Number(form.fund_source_id) : null,
+        budget_id: form.budget_id ? Number(form.budget_id) : null,
+        amount: totalAmount,
+        items,
+        status: 'draft',
+      };
 
-    const res = await fetch('/api/disbursements', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+      const res = await fetch('/api/disbursements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-    if (res.ok) {
-      const data = await res.json();
-      if (submitForApproval) {
-        await fetch(`/api/disbursements/${data.id}/submit`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (submitForApproval) {
+          await fetch(`/api/disbursements/${data.id}/submit`, { method: 'POST' });
+          success('Disbursement Submitted', `Request ${data.request_number || data.id} has been submitted for approval.`);
+        } else {
+          success('Draft Saved', `Disbursement request ${data.request_number || data.id} saved as draft.`);
+        }
+        router.push(`/disbursements/${data.id}`);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        error('Save Failed', err.message || err.error || 'Could not create disbursement. Please try again.');
       }
-      router.push(`/disbursements/${data.id}`);
+    } catch (e) {
+      error('Save Failed', 'Network error. Please try again.');
     }
   };
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency } from '@/lib/utils';
+import { useToast } from '@/components/ui/Toast';
 import { Download, Save } from 'lucide-react';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -12,6 +13,7 @@ interface Allocation {
 }
 
 export default function BudgetAllocation() {
+  const { success, error } = useToast();
   const [allocations, setAllocations] = useState<Allocation[]>([]);
   const [edits, setEdits] = useState<Record<string, number>>({});
   const [saving, setSaving] = useState(false);
@@ -40,22 +42,32 @@ export default function BudgetAllocation() {
 
   const handleSave = async () => {
     setSaving(true);
-    const updates = Object.entries(edits).map(([key, amount]) => {
-      const [budget_id, month] = key.split('-').map(Number);
-      return { budget_id, month, amount };
-    });
+    try {
+      const updates = Object.entries(edits).map(([key, amount]) => {
+        const [budget_id, month] = key.split('-').map(Number);
+        return { budget_id, month, amount };
+      });
 
-    await fetch('/api/budgets/allocations', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ updates }),
-    });
+      const res = await fetch('/api/budgets/allocations', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates }),
+      });
 
-    setEdits({});
-    // Reload data
-    const data = await fetch('/api/budgets/allocations?school_year=2025-2026').then(r => r.json());
-    setAllocations(data);
-    setSaving(false);
+      if (res.ok) {
+        success('Allocations Saved', `${updates.length} allocation(s) updated successfully.`);
+        setEdits({});
+        const data = await fetch('/api/budgets/allocations?school_year=2025-2026').then(r => r.json());
+        setAllocations(data);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        error('Save Failed', err.message || err.error || 'Could not save allocations. Please try again.');
+      }
+    } catch (e) {
+      error('Save Failed', 'Network error. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const hasEdits = Object.keys(edits).length > 0;

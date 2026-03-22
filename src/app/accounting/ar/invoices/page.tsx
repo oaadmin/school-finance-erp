@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { useToast } from '@/components/ui/Toast';
 import { FileText, Plus, Search, Filter, DollarSign, AlertCircle, CheckCircle, X } from 'lucide-react';
 import Link from 'next/link';
 
@@ -61,6 +62,7 @@ const invoiceStatusLabel = (status: string): string => {
 };
 
 export default function InvoicesPage() {
+  const { success, error } = useToast();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [statusFilter, setStatusFilter] = useState('');
@@ -103,10 +105,17 @@ export default function InvoicesPage() {
         body: JSON.stringify({ ...form, net_amount: netAmount }),
       });
       if (res.ok) {
+        const data = await res.json();
+        success('Invoice Created', `Invoice ${data.invoice_number || ''} has been created successfully.`);
         setShowModal(false);
         setForm({ customer_id: '', invoice_date: new Date().toISOString().split('T')[0], due_date: '', school_year: '', semester: '', description: '', gross_amount: 0, discount_amount: 0 });
         loadInvoices();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        error('Creation Failed', err.message || err.error || 'Could not create invoice. Please try again.');
       }
+    } catch (e) {
+      error('Creation Failed', 'Network error. Please try again.');
     } finally {
       setSubmitting(false);
     }

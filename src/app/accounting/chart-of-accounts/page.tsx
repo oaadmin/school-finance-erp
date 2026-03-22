@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useToast } from '@/components/ui/Toast';
 import { Plus, Search, X, Save, Edit2, ChevronRight } from 'lucide-react';
 
 interface Account {
@@ -30,6 +31,7 @@ const emptyForm = {
 };
 
 export default function ChartOfAccounts() {
+  const { success, error } = useToast();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -97,17 +99,25 @@ export default function ChartOfAccounts() {
       : '/api/accounting/coa';
     const method = editingId ? 'PUT' : 'POST';
 
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-    if (res.ok) {
-      setShowModal(false);
-      setForm(emptyForm);
-      setEditingId(null);
-      loadData();
+      if (res.ok) {
+        success(editingId ? 'Account Updated' : 'Account Created', `Account "${form.account_code} - ${form.account_name}" has been ${editingId ? 'updated' : 'created'} successfully.`);
+        setShowModal(false);
+        setForm(emptyForm);
+        setEditingId(null);
+        loadData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        error('Save Failed', err.message || err.error || 'Could not save account. Please try again.');
+      }
+    } catch (e) {
+      error('Save Failed', 'Network error. Please try again.');
     }
   };
 

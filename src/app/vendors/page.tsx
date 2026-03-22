@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency } from '@/lib/utils';
+import { useToast } from '@/components/ui/Toast';
 import { Users, Plus, Search, X, Save, Building2, User } from 'lucide-react';
 
 interface Payee {
@@ -12,6 +13,7 @@ interface Payee {
 }
 
 export default function VendorManagement() {
+  const { success, error } = useToast();
   const [payees, setPayees] = useState<Payee[]>([]);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -32,15 +34,23 @@ export default function VendorManagement() {
   useEffect(loadData, [typeFilter, search]);
 
   const handleCreate = async () => {
-    const res = await fetch('/api/payees', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    });
-    if (res.ok) {
-      setShowModal(false);
-      setForm({ payee_code: '', name: '', type: 'vendor', contact_person: '', email: '', phone: '', address: '', tin: '', bank_name: '', bank_account_number: '', bank_branch: '' });
-      loadData();
+    try {
+      const res = await fetch('/api/payees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) {
+        success('Payee Created', `Payee "${form.name}" has been added successfully.`);
+        setShowModal(false);
+        setForm({ payee_code: '', name: '', type: 'vendor', contact_person: '', email: '', phone: '', address: '', tin: '', bank_name: '', bank_account_number: '', bank_branch: '' });
+        loadData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        error('Creation Failed', err.message || err.error || 'Could not create payee. Please try again.');
+      }
+    } catch (e) {
+      error('Creation Failed', 'Network error. Please try again.');
     }
   };
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency, getStatusColor, getStatusLabel, formatDate } from '@/lib/utils';
+import { useToast } from '@/components/ui/Toast';
 import { CreditCard, Plus, X, Printer, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 
@@ -18,6 +19,7 @@ interface ApprovedDisbursement {
 }
 
 export default function PaymentProcessing() {
+  const { success, error } = useToast();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [approved, setApproved] = useState<ApprovedDisbursement[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -51,15 +53,24 @@ export default function PaymentProcessing() {
 
   const handleProcess = async () => {
     if (!selectedDisb) return;
-    const res = await fetch('/api/payments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, disbursement_id: selectedDisb.id }),
-    });
-    if (res.ok) {
-      setShowModal(false);
-      setSelectedDisb(null);
-      loadData();
+    try {
+      const res = await fetch('/api/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, disbursement_id: selectedDisb.id }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        success('Payment Processed', `Payment ${data.voucher_number || ''} for ${selectedDisb.request_number} has been processed.`);
+        setShowModal(false);
+        setSelectedDisb(null);
+        loadData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        error('Payment Failed', err.message || err.error || 'Could not process payment. Please try again.');
+      }
+    } catch (e) {
+      error('Payment Failed', 'Network error. Please try again.');
     }
   };
 

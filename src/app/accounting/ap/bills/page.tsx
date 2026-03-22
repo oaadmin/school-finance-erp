@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency, getStatusColor, getStatusLabel, formatDate } from '@/lib/utils';
+import { useToast } from '@/components/ui/Toast';
 import { FileText, Filter, Plus, Search, X } from 'lucide-react';
 import Link from 'next/link';
 
@@ -51,6 +52,7 @@ const billStatusColor = (status: string): string => {
 };
 
 export default function SupplierBills() {
+  const { success, error } = useToast();
   const [bills, setBills] = useState<Bill[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -103,6 +105,8 @@ export default function SupplierBills() {
         body: JSON.stringify(form),
       });
       if (res.ok) {
+        const data = await res.json();
+        success('Bill Created', `Bill ${data.bill_number || ''} has been created successfully.`);
         setShowModal(false);
         setForm({
           vendor_id: '', department_id: '',
@@ -111,7 +115,12 @@ export default function SupplierBills() {
           gross_amount: 0, vat_amount: 0, withholding_tax: 0, net_payable: 0,
         });
         loadBills();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        error('Creation Failed', err.message || err.error || 'Could not create bill. Please try again.');
       }
+    } catch (e) {
+      error('Creation Failed', 'Network error. Please try again.');
     } finally {
       setSubmitting(false);
     }

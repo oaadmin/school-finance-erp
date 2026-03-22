@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency } from '@/lib/utils';
+import { useToast } from '@/components/ui/Toast';
 import { Plus, Search, Filter, Users, X } from 'lucide-react';
 import Link from 'next/link';
 
@@ -46,6 +47,7 @@ const statusBadgeColor = (status: string): string => {
 };
 
 export default function CustomersPage() {
+  const { success, error } = useToast();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [typeFilter, setTypeFilter] = useState('');
   const [search, setSearch] = useState('');
@@ -79,10 +81,16 @@ export default function CustomersPage() {
         body: JSON.stringify(form),
       });
       if (res.ok) {
+        success('Customer Created', `Customer "${form.name}" has been added successfully.`);
         setShowModal(false);
         setForm({ customer_code: '', customer_type: 'student', name: '', campus: '', grade_level: '', email: '', phone: '', billing_address: '' });
         loadCustomers();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        error('Creation Failed', err.message || err.error || 'Could not create customer. Please try again.');
       }
+    } catch (e) {
+      error('Creation Failed', 'Network error. Please try again.');
     } finally {
       setSubmitting(false);
     }

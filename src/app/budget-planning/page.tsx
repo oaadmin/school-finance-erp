@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency } from '@/lib/utils';
+import { useToast } from '@/components/ui/Toast';
 import { Plus, Copy, Download, Upload, Save, X } from 'lucide-react';
 
 interface Department { id: number; name: string; }
@@ -11,6 +12,7 @@ interface CostCenter { id: number; name: string; }
 interface Budget { id: number; budget_name: string; department_name: string; category_name: string; annual_budget: number; status: string; }
 
 export default function BudgetPlanning() {
+  const { success, error } = useToast();
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [lookups, setLookups] = useState<{ departments: Department[]; categories: Category[]; fundSources: FundSource[]; costCenters: CostCenter[] }>({ departments: [], categories: [], fundSources: [], costCenters: [] });
@@ -28,22 +30,30 @@ export default function BudgetPlanning() {
   useEffect(loadData, []);
 
   const handleCreate = async () => {
-    const res = await fetch('/api/budgets', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...form,
-        department_id: Number(form.department_id),
-        category_id: Number(form.category_id),
-        cost_center_id: form.cost_center_id ? Number(form.cost_center_id) : null,
-        fund_source_id: form.fund_source_id ? Number(form.fund_source_id) : null,
-        annual_budget: Number(form.annual_budget),
-      }),
-    });
-    if (res.ok) {
-      setShowModal(false);
-      setForm({ budget_name: '', school_year: '2025-2026', department_id: '', category_id: '', cost_center_id: '', fund_source_id: '', project: '', campus: 'Main', annual_budget: '', budget_owner: '', notes: '', status: 'draft' });
-      loadData();
+    try {
+      const res = await fetch('/api/budgets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          department_id: Number(form.department_id),
+          category_id: Number(form.category_id),
+          cost_center_id: form.cost_center_id ? Number(form.cost_center_id) : null,
+          fund_source_id: form.fund_source_id ? Number(form.fund_source_id) : null,
+          annual_budget: Number(form.annual_budget),
+        }),
+      });
+      if (res.ok) {
+        success('Budget Created', `Budget "${form.budget_name}" has been created successfully.`);
+        setShowModal(false);
+        setForm({ budget_name: '', school_year: '2025-2026', department_id: '', category_id: '', cost_center_id: '', fund_source_id: '', project: '', campus: 'Main', annual_budget: '', budget_owner: '', notes: '', status: 'draft' });
+        loadData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        error('Creation Failed', err.message || err.error || 'Could not create budget. Please try again.');
+      }
+    } catch (e) {
+      error('Creation Failed', 'Network error. Please try again.');
     }
   };
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatCurrency, getStatusColor, formatDate } from '@/lib/utils';
+import { useToast } from '@/components/ui/Toast';
 import { CheckSquare, CheckCircle, XCircle, RotateCcw, AlertTriangle, Eye } from 'lucide-react';
 import Link from 'next/link';
 
@@ -18,6 +19,7 @@ const roleLabels: Record<string, string> = {
 };
 
 export default function ApprovalQueue() {
+  const { success, error } = useToast();
   const [items, setItems] = useState<PendingItem[]>([]);
   const [actionModal, setActionModal] = useState<{ id: number; action: string } | null>(null);
   const [comments, setComments] = useState('');
@@ -30,16 +32,28 @@ export default function ApprovalQueue() {
 
   const handleAction = async () => {
     if (!actionModal) return;
-    await fetch(`/api/disbursements/${actionModal.id}/approve`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: actionModal.action,
-        comments,
-        approver_role: items.find(i => i.id === actionModal.id)?.current_approver_role,
-        approver_id: 3,
-      }),
-    });
+    const item = items.find(i => i.id === actionModal.id);
+    try {
+      const res = await fetch(`/api/disbursements/${actionModal.id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: actionModal.action,
+          comments,
+          approver_role: item?.current_approver_role,
+          approver_id: 3,
+        }),
+      });
+      if (res.ok) {
+        const actionLabel = actionModal.action === 'approved' ? 'Approved' : actionModal.action === 'rejected' ? 'Rejected' : 'Returned';
+        success(`Request ${actionLabel}`, `${item?.request_number || 'Request'} has been ${actionLabel.toLowerCase()}.`);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        error('Action Failed', err.message || err.error || 'Could not process approval action.');
+      }
+    } catch (e) {
+      error('Action Failed', 'Network error. Please try again.');
+    }
     setActionModal(null);
     setComments('');
     loadData();

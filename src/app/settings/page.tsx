@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useToast } from '@/components/ui/Toast';
 import { Save, Settings as SettingsIcon, School, DollarSign, Shield, Bell } from 'lucide-react';
 
 interface Setting { id: number; key: string; value: string; category: string; }
@@ -24,6 +25,7 @@ const categoryIcons: Record<string, typeof School> = {
 };
 
 export default function SystemSettings() {
+  const { success, error } = useToast();
   const [settings, setSettings] = useState<Setting[]>([]);
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -35,23 +37,33 @@ export default function SystemSettings() {
 
   const handleSave = async () => {
     setSaving(true);
-    const updates = Object.entries(edits).map(([key, value]) => {
-      const orig = settings.find(s => s.key === key);
-      return { key, value, category: orig?.category || 'general' };
-    });
+    try {
+      const updates = Object.entries(edits).map(([key, value]) => {
+        const orig = settings.find(s => s.key === key);
+        return { key, value, category: orig?.category || 'general' };
+      });
 
-    await fetch('/api/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ settings: updates }),
-    });
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings: updates }),
+      });
 
-    setSaving(false);
-    setSaved(true);
-    setEdits({});
-    setTimeout(() => setSaved(false), 3000);
-    // Reload
-    fetch('/api/settings').then(r => r.json()).then(d => setSettings(d.settings));
+      if (res.ok) {
+        success('Settings Saved', `${updates.length} setting(s) updated successfully.`);
+        setSaved(true);
+        setEdits({});
+        setTimeout(() => setSaved(false), 3000);
+        fetch('/api/settings').then(r => r.json()).then(d => setSettings(d.settings));
+      } else {
+        const err = await res.json().catch(() => ({}));
+        error('Save Failed', err.message || err.error || 'Could not save settings. Please try again.');
+      }
+    } catch (e) {
+      error('Save Failed', 'Network error. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const getValue = (key: string) => edits[key] ?? settings.find(s => s.key === key)?.value ?? '';
