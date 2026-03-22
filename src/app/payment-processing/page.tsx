@@ -40,13 +40,13 @@ export default function PaymentProcessing() {
 
   const openPayment = (disb: ApprovedDisbursement) => {
     setSelectedDisb(disb);
-    const wht = disb.amount * 0.02;
+    const wht = Math.round(disb.amount * 0.02 * 100) / 100;
     setForm({
       ...form,
       payment_method: disb.payment_method || 'bank_transfer',
       gross_amount: disb.amount,
       withholding_tax: wht,
-      net_amount: disb.amount - wht,
+      net_amount: Math.round((disb.amount - wht) * 100) / 100,
     });
     setShowModal(true);
   };
@@ -211,12 +211,12 @@ export default function PaymentProcessing() {
                 <div className="flex justify-between text-sm">
                   <span>Gross Amount</span>
                   <input className="input-field w-40 text-right" type="number" value={form.gross_amount}
-                    onChange={e => { const g = parseFloat(e.target.value) || 0; setForm({...form, gross_amount: g, net_amount: g - form.withholding_tax}); }} />
+                    onChange={e => { const g = parseFloat(e.target.value) || 0; setForm({...form, gross_amount: g, net_amount: Math.round((g - form.withholding_tax) * 100) / 100}); }} />
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Withholding Tax (2%)</span>
                   <input className="input-field w-40 text-right" type="number" value={form.withholding_tax}
-                    onChange={e => { const t = parseFloat(e.target.value) || 0; setForm({...form, withholding_tax: t, net_amount: form.gross_amount - t}); }} />
+                    onChange={e => { const t = parseFloat(e.target.value) || 0; setForm({...form, withholding_tax: t, net_amount: Math.round((form.gross_amount - t) * 100) / 100}); }} />
                 </div>
                 <hr />
                 <div className="flex justify-between text-lg font-bold">

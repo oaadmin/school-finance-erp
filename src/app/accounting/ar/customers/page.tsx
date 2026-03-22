@@ -64,6 +64,7 @@ export default function CustomersPage() {
     phone: '',
     billing_address: '',
   });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const loadCustomers = () => {
     const params = new URLSearchParams({ type: 'customers' });
@@ -89,9 +90,15 @@ export default function CustomersPage() {
     setShowModal(false);
     setEditingId(null);
     setForm(emptyForm);
+    setFormErrors({});
   };
 
   const handleSave = async () => {
+    const errors: Record<string, string> = {};
+    if (!form.customer_code?.trim()) errors.customer_code = 'Code is required';
+    if (!form.name?.trim()) errors.name = 'Name is required';
+    if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
+    setFormErrors({});
     setSubmitting(true);
     try {
       const method = editingId ? 'PUT' : 'POST';
@@ -220,9 +227,10 @@ export default function CustomersPage() {
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="label">Customer Code</label>
-                  <input className="input-field" placeholder="e.g. STU-2026-001"
-                    value={form.customer_code} onChange={e => setForm({ ...form, customer_code: e.target.value })} />
+                  <label className="label">Customer Code *</label>
+                  <input className={`input-field ${formErrors.customer_code ? 'border-red-500' : ''}`} placeholder="e.g. STU-2026-001"
+                    value={form.customer_code} onChange={e => { setForm({ ...form, customer_code: e.target.value }); setFormErrors(prev => { const { customer_code, ...rest } = prev; return rest; }); }} />
+                  {formErrors.customer_code && <p className="text-xs text-red-500 mt-1">{formErrors.customer_code}</p>}
                 </div>
                 <div>
                   <label className="label">Customer Type</label>
@@ -234,9 +242,10 @@ export default function CustomersPage() {
                 </div>
               </div>
               <div>
-                <label className="label">Name</label>
-                <input className="input-field" placeholder="Full name"
-                  value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+                <label className="label">Name *</label>
+                <input className={`input-field ${formErrors.name ? 'border-red-500' : ''}`} placeholder="Full name"
+                  value={form.name} onChange={e => { setForm({ ...form, name: e.target.value }); setFormErrors(prev => { const { name, ...rest } = prev; return rest; }); }} />
+                {formErrors.name && <p className="text-xs text-red-500 mt-1">{formErrors.name}</p>}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

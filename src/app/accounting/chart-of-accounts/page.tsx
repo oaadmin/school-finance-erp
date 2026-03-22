@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useToast } from '@/components/ui/Toast';
 import { Plus, Search, X, Save, Edit2, ChevronRight } from 'lucide-react';
+import Pagination from '@/components/ui/Pagination';
 
 interface Account {
   id: number;
@@ -38,6 +39,8 @@ export default function ChartOfAccounts() {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   const loadData = () => {
     fetch('/api/accounting/coa')
@@ -57,6 +60,9 @@ export default function ChartOfAccounts() {
     return matchesSearch && matchesType;
   });
 
+  useEffect(() => setCurrentPage(1), [search, typeFilter]);
+
+  const paginatedData = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const parentAccounts = accounts.filter((a) => !a.parent_id);
 
   const getParentName = (parentId: number | null) => {
@@ -180,7 +186,7 @@ export default function ChartOfAccounts() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((a) => (
+              {paginatedData.map((a) => (
                 <tr key={a.id}>
                   <td className="font-mono text-xs sm:text-sm font-medium">
                     {a.account_code}
@@ -221,17 +227,17 @@ export default function ChartOfAccounts() {
                     </span>
                   </td>
                   <td className="hidden sm:table-cell capitalize text-sm">
-                    {a.normal_balance}
+                    {a.normal_balance || (['asset', 'expense'].includes(a.account_type.toLowerCase()) ? 'debit' : 'credit')}
                   </td>
                   <td>
                     <span
                       className={`badge ${
-                        a.is_active
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-500'
+                        a.is_active === 0
+                          ? 'bg-gray-100 text-gray-500'
+                          : 'bg-green-100 text-green-700'
                       } text-[10px] sm:text-xs`}
                     >
-                      {a.is_active ? 'Active' : 'Inactive'}
+                      {a.is_active === 0 ? 'Inactive' : 'Active'}
                     </span>
                   </td>
                   <td>
@@ -258,6 +264,7 @@ export default function ChartOfAccounts() {
             </tbody>
           </table>
         </div>
+        <Pagination currentPage={currentPage} totalItems={filtered.length} pageSize={pageSize} onPageChange={setCurrentPage} />
       </div>
 
       {showModal && (

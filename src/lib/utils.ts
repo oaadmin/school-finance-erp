@@ -6,8 +6,8 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number | null | undefined, symbol = '₱'): string {
-  if (amount == null || isNaN(amount)) return `${symbol}0`;
-  return `${symbol}${amount.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  if (amount == null || isNaN(amount)) return `${symbol}0.00`;
+  return `${symbol}${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function formatDate(dateStr: string | null | undefined): string {

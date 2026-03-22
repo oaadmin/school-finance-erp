@@ -24,6 +24,7 @@ export default function VendorManagement() {
     email: '', phone: '', address: '', tin: '',
     bank_name: '', bank_account_number: '', bank_branch: '',
   });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const loadData = () => {
     const params = new URLSearchParams();
@@ -49,9 +50,15 @@ export default function VendorManagement() {
     setShowModal(false);
     setEditingId(null);
     setForm({ payee_code: '', name: '', type: 'vendor', contact_person: '', email: '', phone: '', address: '', tin: '', bank_name: '', bank_account_number: '', bank_branch: '' });
+    setFormErrors({});
   };
 
   const handleSave = async () => {
+    const errors: Record<string, string> = {};
+    if (!form.payee_code?.trim()) errors.payee_code = 'Code is required';
+    if (!form.name?.trim()) errors.name = 'Name is required';
+    if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
+    setFormErrors({});
     try {
       const method = editingId ? 'PUT' : 'POST';
       const payload = editingId ? { ...form, id: editingId } : form;
@@ -158,13 +165,13 @@ export default function VendorManagement() {
             </div>
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div><label className="label">Payee Code *</label><input className="input-field" value={form.payee_code} onChange={e => setForm({...form, payee_code: e.target.value})} placeholder="V-006" /></div>
+                <div><label className="label">Payee Code *</label><input className={`input-field ${formErrors.payee_code ? 'border-red-500' : ''}`} value={form.payee_code} onChange={e => { setForm({...form, payee_code: e.target.value}); setFormErrors(prev => { const { payee_code, ...rest } = prev; return rest; }); }} placeholder="V-006" />{formErrors.payee_code && <p className="text-xs text-red-500 mt-1">{formErrors.payee_code}</p>}</div>
                 <div><label className="label">Type</label>
                   <select className="select-field" value={form.type} onChange={e => setForm({...form, type: e.target.value})}>
                     <option value="vendor">Vendor</option><option value="employee">Employee</option><option value="other">Other</option>
                   </select>
                 </div>
-                <div className="col-span-2"><label className="label">Name *</label><input className="input-field" value={form.name} onChange={e => setForm({...form, name: e.target.value})} /></div>
+                <div className="col-span-2"><label className="label">Name *</label><input className={`input-field ${formErrors.name ? 'border-red-500' : ''}`} value={form.name} onChange={e => { setForm({...form, name: e.target.value}); setFormErrors(prev => { const { name, ...rest } = prev; return rest; }); }} />{formErrors.name && <p className="text-xs text-red-500 mt-1">{formErrors.name}</p>}</div>
                 <div><label className="label">Contact Person</label><input className="input-field" value={form.contact_person} onChange={e => setForm({...form, contact_person: e.target.value})} /></div>
                 <div><label className="label">Email</label><input className="input-field" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} /></div>
                 <div><label className="label">Phone</label><input className="input-field" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} /></div>

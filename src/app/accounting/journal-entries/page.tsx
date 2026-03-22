@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/utils';
 import { Plus, Search, Filter, ChevronDown, ChevronRight, Send, CheckCircle, BookOpen, X, Trash2 } from 'lucide-react';
+import Pagination from '@/components/ui/Pagination';
 
 interface JELine { account_code: string; account_name: string; description: string; debit: number; credit: number; }
 interface JournalEntry { id: number; entry_number: string; entry_date: string; description: string; status: string; reference_type: string; total_debit: number; total_credit: number; lines: JELine[]; }
@@ -14,6 +15,8 @@ export default function JournalEntries() {
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [accounts, setAccounts] = useState<Array<{ id: number; account_code: string; account_name: string }>>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   // New JE form state
   const [jeForm, setJeForm] = useState({ entry_date: new Date().toISOString().split('T')[0], description: '', reference_type: 'manual' });
@@ -27,6 +30,10 @@ export default function JournalEntries() {
   }, [statusFilter]);
 
   const filtered = search ? entries.filter(e => e.entry_number.toLowerCase().includes(search.toLowerCase()) || e.description?.toLowerCase().includes(search.toLowerCase())) : entries;
+
+  useEffect(() => setCurrentPage(1), [search, statusFilter]);
+
+  const paginatedData = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const totalDebit = jeLines.reduce((s, l) => s + (l.debit || 0), 0);
   const totalCredit = jeLines.reduce((s, l) => s + (l.credit || 0), 0);
@@ -71,7 +78,7 @@ export default function JournalEntries() {
               <tr><th className="w-8" /><th>Journal #</th><th className="hidden sm:table-cell">Date</th><th>Description</th><th className="hidden md:table-cell">Type</th><th className="text-right">Debit</th><th className="text-right">Credit</th><th>Status</th></tr>
             </thead>
             <tbody>
-              {filtered.slice(0, 50).map(je => (
+              {paginatedData.map(je => (
                 <>
                   <tr key={je.id} className="cursor-pointer hover:bg-blue-50" onClick={() => setExpanded(p => ({ ...p, [je.id]: !p[je.id] }))}>
                     <td>{expanded[je.id] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</td>
@@ -98,6 +105,7 @@ export default function JournalEntries() {
             </tbody>
           </table>
         </div>
+        <Pagination currentPage={currentPage} totalItems={filtered.length} pageSize={pageSize} onPageChange={setCurrentPage} />
       </div>
 
       {/* Create JE Modal */}

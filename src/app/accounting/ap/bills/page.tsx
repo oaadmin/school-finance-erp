@@ -5,6 +5,7 @@ import { formatCurrency, getStatusColor, getStatusLabel, formatDate } from '@/li
 import { useToast } from '@/components/ui/Toast';
 import { FileText, Filter, Plus, Search, X, Edit2 } from 'lucide-react';
 import Link from 'next/link';
+import Pagination from '@/components/ui/Pagination';
 
 interface Bill {
   id: number;
@@ -61,6 +62,8 @@ export default function SupplierBills() {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
   const [form, setForm] = useState({
     vendor_id: '',
     department_id: '',
@@ -151,6 +154,9 @@ export default function SupplierBills() {
       )
     : bills;
 
+  useEffect(() => setCurrentPage(1), [search, statusFilter]);
+
+  const paginatedData = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const totalNet = filtered.reduce((s, b) => s + (b.net_payable || 0), 0);
 
   return (
@@ -197,7 +203,7 @@ export default function SupplierBills() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(b => (
+              {paginatedData.map(b => (
                 <tr key={b.id}>
                   <td>
                     <span className="text-primary-600 font-medium flex items-center gap-1 text-xs sm:text-sm">
@@ -232,6 +238,7 @@ export default function SupplierBills() {
             </tbody>
           </table>
         </div>
+        <Pagination currentPage={currentPage} totalItems={filtered.length} pageSize={pageSize} onPageChange={setCurrentPage} />
       </div>
 
       {/* Create Bill Modal */}

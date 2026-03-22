@@ -5,6 +5,7 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
 import { FileText, Plus, Search, Filter, DollarSign, AlertCircle, CheckCircle, X, Edit2 } from 'lucide-react';
 import Link from 'next/link';
+import Pagination from '@/components/ui/Pagination';
 
 interface Invoice {
   id: number;
@@ -70,6 +71,8 @@ export default function InvoicesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
   const [form, setForm] = useState({
     customer_id: '',
     invoice_date: new Date().toISOString().split('T')[0],
@@ -150,6 +153,9 @@ export default function InvoicesPage() {
       )
     : invoices;
 
+  useEffect(() => setCurrentPage(1), [search, statusFilter]);
+
+  const paginatedData = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const totalInvoiced = filtered.reduce((s, i) => s + (i.net_amount || 0), 0);
   const totalCollected = filtered.reduce((s, i) => s + (i.amount_paid || 0), 0);
   const totalOutstanding = filtered.reduce((s, i) => s + (i.balance || 0), 0);
@@ -238,7 +244,7 @@ export default function InvoicesPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(inv => (
+              {paginatedData.map(inv => (
                 <tr key={inv.id}>
                   <td>
                     <span className="text-primary-600 font-medium flex items-center gap-1 text-xs sm:text-sm">
@@ -277,6 +283,7 @@ export default function InvoicesPage() {
             </tbody>
           </table>
         </div>
+        <Pagination currentPage={currentPage} totalItems={filtered.length} pageSize={pageSize} onPageChange={setCurrentPage} />
       </div>
 
       {/* Create Invoice Modal */}

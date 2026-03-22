@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { formatCurrency, getStatusColor, getStatusLabel, formatDate } from '@/lib/utils';
 import { FileText, Filter, Download, Plus, Search } from 'lucide-react';
 import Link from 'next/link';
+import Pagination from '@/components/ui/Pagination';
 
 interface Disbursement {
   id: number; request_number: string; request_date: string; due_date: string;
@@ -15,6 +16,8 @@ export default function DisbursementList() {
   const [disbursements, setDisbursements] = useState<Disbursement[]>([]);
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -30,6 +33,9 @@ export default function DisbursementList() {
       )
     : disbursements;
 
+  useEffect(() => setCurrentPage(1), [search, statusFilter]);
+
+  const paginatedData = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const totalAmount = filtered.reduce((s, d) => s + d.amount, 0);
 
   return (
@@ -75,7 +81,7 @@ export default function DisbursementList() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(d => (
+              {paginatedData.map(d => (
                 <tr key={d.id}>
                   <td>
                     <Link href={`/disbursements/${d.id}`} className="text-primary-600 hover:underline font-medium flex items-center gap-1 text-xs sm:text-sm">
@@ -99,6 +105,7 @@ export default function DisbursementList() {
             </tbody>
           </table>
         </div>
+        <Pagination currentPage={currentPage} totalItems={filtered.length} pageSize={pageSize} onPageChange={setCurrentPage} />
       </div>
     </div>
   );
