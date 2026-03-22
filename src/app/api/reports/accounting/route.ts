@@ -299,7 +299,7 @@ export async function GET(req: NextRequest) {
     `).all(dateFrom, dateTo);
 
     const total = (data as Array<{amount: number}>).reduce((s, r) => s + r.amount, 0);
-    const withPct = (data as Array<{amount: number}>).map(r => ({ ...r, percentage: total > 0 ? ((r.amount / total) * 100).toFixed(1) : '0' }));
+    const withPct = (data as Array<{amount: number}>).map(r => ({ ...r, percentage: total > 0 ? Math.round((r.amount / total) * 1000) / 10 : 0 }));
     return NextResponse.json({ data: withPct, total });
   }
 
@@ -323,17 +323,21 @@ export async function GET(req: NextRequest) {
   }
 
   if (type === 'ar-aging') {
-    // Simulated AR data from receivable accounts
     const data = db.prepare(`
-      SELECT coa.account_name as description,
-        COALESCE(SUM(jel.debit - jel.credit), 0) as total
-      FROM journal_entry_lines jel
-      JOIN journal_entries je ON jel.journal_entry_id = je.id AND je.status = 'posted'
-      JOIN chart_of_accounts coa ON jel.account_id = coa.id
-      WHERE coa.account_code LIKE '11%' AND je.entry_date BETWEEN ? AND ?
-      GROUP BY coa.id
-      HAVING total > 0
-    `).all(dateFrom, dateTo);
+      SELECT c.id as customer_id, c.customer_code, c.name as customer_name,
+        COALESCE(SUM(CASE WHEN julianday('now') - julianday(ai.due_date) <= 0 THEN ai.balance ELSE 0 END), 0) as current_amount,
+        COALESCE(SUM(CASE WHEN julianday('now') - julianday(ai.due_date) BETWEEN 1 AND 30 THEN ai.balance ELSE 0 END), 0) as days_30,
+        COALESCE(SUM(CASE WHEN julianday('now') - julianday(ai.due_date) BETWEEN 31 AND 60 THEN ai.balance ELSE 0 END), 0) as days_60,
+        COALESCE(SUM(CASE WHEN julianday('now') - julianday(ai.due_date) BETWEEN 61 AND 90 THEN ai.balance ELSE 0 END), 0) as days_90,
+        COALESCE(SUM(CASE WHEN julianday('now') - julianday(ai.due_date) > 90 THEN ai.balance ELSE 0 END), 0) as over_90,
+        COALESCE(SUM(ai.balance), 0) as total
+      FROM ar_invoices ai
+      JOIN customers c ON ai.customer_id = c.id
+      WHERE ai.status NOT IN ('cancelled', 'voided', 'paid')
+        AND ai.balance > 0
+      GROUP BY c.id
+      ORDER BY total DESC
+    `).all();
     return NextResponse.json({ data });
   }
 

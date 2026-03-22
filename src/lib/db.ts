@@ -921,16 +921,16 @@ function seedData(db: Database.Database) {
   customers.forEach(c => insertCustomer.run(...c));
 
   // AP Bills
-  const insertBill = db.prepare('INSERT INTO ap_bills (bill_number, bill_date, due_date, vendor_id, department_id, description, gross_amount, vat_amount, withholding_tax, net_payable, balance, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+  const insertBill = db.prepare('INSERT INTO ap_bills (bill_number, bill_date, due_date, vendor_id, department_id, description, gross_amount, vat_amount, withholding_tax, net_payable, amount_paid, balance, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
   const bills = [
-    ['BILL-2025-0001', '2025-07-10', '2025-08-10', 1, 1, 'Microsoft 365 annual subscription', 100000, 12000, 2000, 110000, 0, 'paid'],
-    ['BILL-2025-0002', '2025-07-15', '2025-08-15', 2, 4, 'Office supplies Q3', 25000, 3000, 500, 27500, 27500, 'posted'],
-    ['BILL-2025-0003', '2025-08-01', '2025-09-01', 3, 3, 'AC repair main building', 85000, 10200, 1700, 93500, 0, 'paid'],
-    ['BILL-2025-0004', '2025-08-20', '2025-09-20', 4, 2, 'Textbooks Grade 11-12', 175000, 0, 3500, 171500, 171500, 'approved'],
-    ['BILL-2025-0005', '2025-09-05', '2025-10-05', 5, 4, 'Water bill August 2025', 48500, 0, 0, 48500, 0, 'paid'],
-    ['BILL-2025-0006', '2025-09-15', '2025-10-15', 1, 1, 'Server hosting Q4', 36000, 4320, 720, 39600, 39600, 'posted'],
-    ['BILL-2025-0007', '2025-10-01', '2025-11-01', 3, 3, 'Plumbing repair science bldg', 42000, 5040, 840, 46200, 46200, 'posted'],
-    ['BILL-2025-0008', '2025-10-15', '2025-11-15', 2, 4, 'Printer ink cartridges', 15000, 1800, 300, 16500, 16500, 'draft'],
+    ['BILL-2025-0001', '2025-07-10', '2025-08-10', 1, 1, 'Microsoft 365 annual subscription', 100000, 12000, 2000, 110000, 110000, 0, 'paid'],
+    ['BILL-2025-0002', '2025-07-15', '2025-08-15', 2, 4, 'Office supplies Q3', 25000, 3000, 500, 27500, 0, 27500, 'posted'],
+    ['BILL-2025-0003', '2025-08-01', '2025-09-01', 3, 3, 'AC repair main building', 85000, 10200, 1700, 93500, 93500, 0, 'paid'],
+    ['BILL-2025-0004', '2025-08-20', '2025-09-20', 4, 2, 'Textbooks Grade 11-12', 175000, 0, 3500, 171500, 0, 171500, 'approved'],
+    ['BILL-2025-0005', '2025-09-05', '2025-10-05', 5, 4, 'Water bill August 2025', 48500, 0, 0, 48500, 48500, 0, 'paid'],
+    ['BILL-2025-0006', '2025-09-15', '2025-10-15', 1, 1, 'Server hosting Q4', 36000, 4320, 720, 39600, 0, 39600, 'posted'],
+    ['BILL-2025-0007', '2025-10-01', '2025-11-01', 3, 3, 'Plumbing repair science bldg', 42000, 5040, 840, 46200, 0, 46200, 'posted'],
+    ['BILL-2025-0008', '2025-10-15', '2025-11-15', 2, 4, 'Printer ink cartridges', 15000, 1800, 300, 16500, 0, 16500, 'draft'],
   ];
   bills.forEach(b => insertBill.run(...b));
 
