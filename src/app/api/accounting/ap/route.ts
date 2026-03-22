@@ -141,10 +141,15 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'id is required' }, { status: 400 });
     }
 
-    const grossAmount = body.gross_amount || 0;
-    const vatAmount = body.vat_amount || 0;
-    const withholdingTax = body.withholding_tax || 0;
-    const netPayable = grossAmount + vatAmount - withholdingTax;
+    const existing = db.prepare('SELECT * FROM ap_bills WHERE id = ?').get(body.id) as Record<string, unknown> | undefined;
+    if (!existing) {
+      return NextResponse.json({ error: 'Bill not found' }, { status: 404 });
+    }
+
+    const grossAmount = body.gross_amount ?? existing.gross_amount ?? 0;
+    const vatAmount = body.vat_amount ?? existing.vat_amount ?? 0;
+    const withholdingTax = body.withholding_tax ?? existing.withholding_tax ?? 0;
+    const netPayable = (grossAmount as number) + (vatAmount as number) - (withholdingTax as number);
 
     db.prepare(`
       UPDATE ap_bills SET bill_date = ?, due_date = ?, vendor_id = ?,
@@ -154,8 +159,11 @@ export async function PUT(req: NextRequest) {
         updated_at = datetime('now')
       WHERE id = ?
     `).run(
-      body.bill_date || null, body.due_date || null, body.vendor_id || null,
-      body.department_id || null, body.description || null,
+      body.bill_date ?? existing.bill_date,
+      body.due_date ?? existing.due_date,
+      body.vendor_id ?? existing.vendor_id,
+      body.department_id ?? existing.department_id,
+      body.description ?? existing.description,
       grossAmount, vatAmount, withholdingTax, netPayable,
       netPayable,
       body.id
