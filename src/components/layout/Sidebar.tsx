@@ -192,15 +192,15 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
   return (
-    <aside className="w-64 h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 text-white flex flex-col select-none">
+    <aside className="w-64 h-screen bg-white border-r border-gray-200 text-gray-700 flex flex-col select-none">
       {/* ── Brand ── */}
-      <div className="h-14 px-4 flex items-center gap-3 border-b border-white/10 flex-shrink-0">
-        <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary-500/20">
+      <div className="h-14 px-4 flex items-center gap-3 border-b border-gray-200 flex-shrink-0">
+        <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center flex-shrink-0 shadow-md shadow-primary-500/20 text-white">
           <GraduationCap size={18} />
         </div>
         <div className="min-w-0">
-          <h1 className="text-sm font-bold tracking-wide truncate">ORANGEAPPS</h1>
-          <p className="text-[9px] text-gray-500 uppercase tracking-widest">Finance ERP</p>
+          <h1 className="text-sm font-bold tracking-wide truncate text-gray-900">ORANGEAPPS</h1>
+          <p className="text-[9px] text-gray-400 uppercase tracking-widest">Finance ERP</p>
         </div>
       </div>
 
@@ -211,7 +211,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           if (item.kind === 'section') {
             return (
               <div key={idx} className={`px-3 pb-1 ${idx > 0 ? 'pt-5' : 'pt-3'}`}>
-                <span className="text-[10px] font-semibold text-gray-500 tracking-[0.12em] uppercase">
+                <span className="text-[10px] font-semibold text-gray-400 tracking-[0.12em] uppercase">
                   {item.label}
                 </span>
               </div>
@@ -233,11 +233,11 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                     group w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm
                     transition-all duration-150
                     ${hasActive
-                      ? 'text-white bg-white/[0.08]'
-                      : 'text-gray-400 hover:text-gray-200 hover:bg-white/[0.04]'}
+                      ? 'text-gray-900 bg-primary-50'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}
                   `}
                 >
-                  <Icon size={17} className={`flex-shrink-0 ${hasActive ? 'text-primary-400' : 'text-gray-500 group-hover:text-gray-400'}`} />
+                  <Icon size={17} className={`flex-shrink-0 ${hasActive ? 'text-primary-600' : 'text-gray-400 group-hover:text-gray-500'}`} />
                   <span className="flex-1 text-left truncate font-medium">{item.label}</span>
                   {totalBadge > 0 && (
                     <span className="px-1.5 py-0.5 text-[10px] font-bold bg-red-500/90 text-white rounded-full min-w-[18px] text-center">
@@ -246,7 +246,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                   )}
                   <ChevronRight
                     size={14}
-                    className={`flex-shrink-0 text-gray-600 transition-transform duration-200 ${isExp ? 'rotate-90' : ''}`}
+                    className={`flex-shrink-0 text-gray-400 transition-transform duration-200 ${isExp ? 'rotate-90' : ''}`}
                   />
                 </button>
 
@@ -254,7 +254,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 <div
                   className={`overflow-hidden transition-all duration-200 ease-in-out ${isExp ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
                 >
-                  <div className="ml-[22px] mt-0.5 mb-1 space-y-px border-l border-white/[0.07] pl-0">
+                  <div className="ml-[22px] mt-0.5 mb-1 space-y-px border-l border-gray-200 pl-0">
                     {item.children.map(child => {
                       const active = isActive(child.href);
                       return (
@@ -266,8 +266,8 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                             relative flex items-center gap-2 pl-4 pr-3 py-[6px] ml-0 rounded-r-md text-[13px]
                             transition-all duration-150
                             ${active
-                              ? 'text-white bg-primary-500/20 font-medium before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[2px] before:bg-primary-400 before:rounded-full'
-                              : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.04]'}
+                              ? 'text-primary-700 bg-primary-50 font-medium before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[2px] before:bg-primary-500 before:rounded-full'
+                              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}
                           `}
                         >
                           <span className="truncate">{child.label}</span>
@@ -298,13 +298,13 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                   group flex items-center gap-3 px-3 py-2 rounded-lg text-sm
                   transition-all duration-150
                   ${active
-                    ? 'text-white bg-primary-500/20 font-medium shadow-sm'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/[0.04]'}
+                    ? 'text-primary-700 bg-primary-50 font-medium shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}
                 `}
               >
                 <Icon
                   size={17}
-                  className={`flex-shrink-0 ${active ? 'text-primary-400' : 'text-gray-500 group-hover:text-gray-400'}`}
+                  className={`flex-shrink-0 ${active ? 'text-primary-600' : 'text-gray-400 group-hover:text-gray-500'}`}
                 />
                 <span className="truncate">{item.label}</span>
                 {item.badge && item.badge > 0 && (
@@ -321,14 +321,14 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       {/* ── Footer ── */}
-      <div className="border-t border-white/[0.06] p-3 flex-shrink-0">
+      <div className="border-t border-gray-200 p-3 flex-shrink-0">
         <div className="flex items-center gap-3 px-2">
-          <div className="w-7 h-7 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-bold">
+          <div className="w-7 h-7 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-bold text-white">
             RT
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-gray-300 truncate">Roberto Tan</p>
-            <p className="text-[10px] text-gray-500 truncate">Finance Manager</p>
+            <p className="text-xs font-medium text-gray-700 truncate">Roberto Tan</p>
+            <p className="text-[10px] text-gray-400 truncate">Finance Manager</p>
           </div>
         </div>
       </div>
