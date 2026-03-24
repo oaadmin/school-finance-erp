@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
+import { toast as toastEmitter } from '@/lib/toast';
 
 // ─── Types ──────────────────────────────────────────────────
 type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -146,6 +147,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     setToasts(prev => [...prev.slice(-4), { id, type, title, message, duration }]); // max 5 toasts
   }, []);
+
+  // Subscribe to the global event-based toast emitter so that calls from
+  // non-React code (e.g. utility functions) also render toasts.
+  useEffect(() => {
+    return toastEmitter.subscribe((type, message) => {
+      addToast(type, message);
+    });
+  }, [addToast]);
 
   const value: ToastContextType = {
     toast: addToast,

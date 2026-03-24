@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { RefreshCw, Play, Calendar, Clock } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 
 interface RecurringTemplate {
   id: number;
@@ -60,11 +61,13 @@ const seedTemplates: RecurringTemplate[] = [
 ];
 
 export default function RecurringJournals() {
+  const toastCtx = useToast();
   const [templates] = useState<RecurringTemplate[]>(seedTemplates);
 
   const handleGenerate = (template: RecurringTemplate) => {
-    alert(
-      `Generate entries for "${template.template_name}"?\n\nThis will create journal entries based on the template configuration. This feature will be connected to the API in a future update.`
+    toastCtx.info(
+      `Generate entries for "${template.template_name}"`,
+      'This will create journal entries based on the template configuration. This feature will be connected to the API in a future update.'
     );
   };
 

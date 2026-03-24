@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/utils';
 import { Plus, Search, Filter, ChevronDown, ChevronRight, Send, CheckCircle, BookOpen, X, Trash2 } from 'lucide-react';
 import Pagination from '@/components/ui/Pagination';
+import { useToast } from '@/components/ui/Toast';
 
 interface JELine { account_code: string; account_name: string; description: string; debit: number; credit: number; }
 interface JournalEntry { id: number; entry_number: string; entry_date: string; description: string; status: string; reference_type: string; total_debit: number; total_credit: number; lines: JELine[]; }
 
 export default function JournalEntries() {
+  const toastCtx = useToast();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
   const [showCreate, setShowCreate] = useState(false);
@@ -50,10 +52,10 @@ export default function JournalEntries() {
   };
 
   const handleSaveJE = async (status: string) => {
-    if (!jeForm.description.trim()) { alert('Please enter a description'); return; }
-    if (!isBalanced) { alert('Debit and Credit must be equal and greater than zero'); return; }
+    if (!jeForm.description.trim()) { toastCtx.error('Please enter a description'); return; }
+    if (!isBalanced) { toastCtx.error('Debit and Credit must be equal and greater than zero'); return; }
     const validLines = jeLines.filter(l => l.account_id && (l.debit > 0 || l.credit > 0));
-    if (validLines.length < 2) { alert('At least 2 lines with amounts are required'); return; }
+    if (validLines.length < 2) { toastCtx.error('At least 2 lines with amounts are required'); return; }
     setSaving(true);
     try {
       const res = await fetch('/api/accounting/journal-entries', {
@@ -68,15 +70,15 @@ export default function JournalEntries() {
         })
       });
       const data = await res.json();
-      if (!res.ok) { alert(data.error || 'Failed to save'); setSaving(false); return; }
-      alert(`Journal Entry ${data.entry_number} ${status === 'posted' ? 'posted' : 'saved as draft'} successfully!`);
+      if (!res.ok) { toastCtx.error(data.error || 'Failed to save'); setSaving(false); return; }
+      toastCtx.success(`Journal Entry ${data.entry_number} ${status === 'posted' ? 'posted' : 'saved as draft'} successfully!`);
       setShowCreate(false);
       setJeForm({ entry_date: new Date().toISOString().split('T')[0], description: '', reference_type: 'manual' });
       setJeLines([{ account_id: '', description: '', debit: 0, credit: 0 }, { account_id: '', description: '', debit: 0, credit: 0 }]);
       // Refresh entries
       const params = new URLSearchParams({ type: 'journal-entries', date_from: '2025-06-01', date_to: '2026-05-31' });
       fetch(`/api/reports/accounting?${params}`).then(r => r.json()).then(d => setEntries(d.data || []));
-    } catch (err) { alert('Error saving journal entry'); }
+    } catch (err) { toastCtx.error('Error saving journal entry'); }
     setSaving(false);
   };
 

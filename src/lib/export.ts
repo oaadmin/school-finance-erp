@@ -1,5 +1,7 @@
 'use client';
 
+import { toast } from '@/lib/toast';
+
 /**
  * Export utility functions for generating Excel-compatible CSV files,
  * printable PDF reports, and triggering browser print.
@@ -198,7 +200,7 @@ export function exportToPDF(
 
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
-    alert('Unable to open print window. Please allow popups for this site.');
+    toast.error('Unable to open print window. Please allow popups for this site.');
     return;
   }
 
