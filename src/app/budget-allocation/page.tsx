@@ -17,6 +17,8 @@ export default function BudgetAllocation() {
   const [allocations, setAllocations] = useState<Allocation[]>([]);
   const [edits, setEdits] = useState<Record<string, number>>({});
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
+  const [deptFilter, setDeptFilter] = useState('');
 
   useEffect(() => {
     fetch('/api/budgets/allocations?school_year=2025-2026').then(r => r.json()).then(setAllocations);
@@ -36,8 +38,8 @@ export default function BudgetAllocation() {
     return MONTHS.reduce((sum, _, i) => sum + getValue(alloc, i + 1), 0);
   };
 
-  const getColTotal = (month: number): number => {
-    return allocations.reduce((sum, alloc) => sum + getValue(alloc, month), 0);
+  const getColTotal = (month: number, list?: Allocation[]): number => {
+    return (list || allocations).reduce((sum, alloc) => sum + getValue(alloc, month), 0);
   };
 
   const handleSave = async () => {
@@ -71,7 +73,13 @@ export default function BudgetAllocation() {
   };
 
   const hasEdits = Object.keys(edits).length > 0;
-  const grandTotal = allocations.reduce((s, a) => s + getRowTotal(a), 0);
+  const departments = [...new Set(allocations.map(a => a.department))];
+  const filtered = allocations.filter(a => {
+    const matchSearch = !search || a.department.toLowerCase().includes(search.toLowerCase()) || a.category.toLowerCase().includes(search.toLowerCase()) || a.budget_name.toLowerCase().includes(search.toLowerCase());
+    const matchDept = !deptFilter || a.department === deptFilter;
+    return matchSearch && matchDept;
+  });
+  const grandTotal = filtered.reduce((s, a) => s + getRowTotal(a), 0);
 
   return (
     <div className="space-y-6">
@@ -90,6 +98,15 @@ export default function BudgetAllocation() {
         </div>
       </div>
 
+      <div className="card p-3 flex flex-wrap gap-3 items-center">
+        <input type="text" placeholder="Search department, category..." className="input-field text-sm flex-1 min-w-[200px]" value={search} onChange={e => setSearch(e.target.value)} />
+        <select className="select-field text-sm" value={deptFilter} onChange={e => setDeptFilter(e.target.value)}>
+          <option value="">All Departments</option>
+          {departments.map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+        <span className="text-xs text-gray-500">{filtered.length} of {allocations.length} budgets</span>
+      </div>
+
       <div className="card">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -105,7 +122,7 @@ export default function BudgetAllocation() {
               </tr>
             </thead>
             <tbody>
-              {allocations.map((alloc) => {
+              {filtered.map((alloc) => {
                 const rowTotal = getRowTotal(alloc);
                 const diff = rowTotal - alloc.annual_budget;
                 return (
@@ -135,9 +152,9 @@ export default function BudgetAllocation() {
               <tr className="bg-gray-100 font-semibold">
                 <td className="px-3 py-3 sticky left-0 bg-gray-100 z-10">TOTALS</td>
                 <td className="px-3 py-3" />
-                <td className="px-3 py-3 text-right">{formatCurrency(allocations.reduce((s, a) => s + a.annual_budget, 0))}</td>
+                <td className="px-3 py-3 text-right">{formatCurrency(filtered.reduce((s, a) => s + a.annual_budget, 0))}</td>
                 {MONTHS.map((_, i) => (
-                  <td key={i} className="px-3 py-3 text-right">{formatCurrency(getColTotal(i + 1))}</td>
+                  <td key={i} className="px-3 py-3 text-right">{formatCurrency(getColTotal(i + 1, filtered))}</td>
                 ))}
                 <td className="px-3 py-3 text-right bg-blue-100">{formatCurrency(grandTotal)}</td>
               </tr>
