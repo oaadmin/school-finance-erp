@@ -39,12 +39,45 @@ export default function JournalEntries() {
   const totalCredit = jeLines.reduce((s, l) => s + (l.credit || 0), 0);
   const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
 
+  const [saving, setSaving] = useState(false);
+
   const addLine = () => setJeLines([...jeLines, { account_id: '', description: '', debit: 0, credit: 0 }]);
   const removeLine = (i: number) => { if (jeLines.length > 2) setJeLines(jeLines.filter((_, idx) => idx !== i)); };
   const updateLine = (i: number, field: string, value: string | number) => {
     const newLines = [...jeLines];
     (newLines[i] as Record<string, unknown>)[field] = value;
     setJeLines(newLines);
+  };
+
+  const handleSaveJE = async (status: string) => {
+    if (!jeForm.description.trim()) { alert('Please enter a description'); return; }
+    if (!isBalanced) { alert('Debit and Credit must be equal and greater than zero'); return; }
+    const validLines = jeLines.filter(l => l.account_id && (l.debit > 0 || l.credit > 0));
+    if (validLines.length < 2) { alert('At least 2 lines with amounts are required'); return; }
+    setSaving(true);
+    try {
+      const res = await fetch('/api/accounting/journal-entries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entry_date: jeForm.entry_date,
+          journal_type: jeForm.reference_type === 'manual' ? 'general' : jeForm.reference_type,
+          description: jeForm.description,
+          status,
+          lines: validLines.map(l => ({ account_id: Number(l.account_id), description: l.description, debit: l.debit, credit: l.credit }))
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || 'Failed to save'); setSaving(false); return; }
+      alert(`Journal Entry ${data.entry_number} ${status === 'posted' ? 'posted' : 'saved as draft'} successfully!`);
+      setShowCreate(false);
+      setJeForm({ entry_date: new Date().toISOString().split('T')[0], description: '', reference_type: 'manual' });
+      setJeLines([{ account_id: '', description: '', debit: 0, credit: 0 }, { account_id: '', description: '', debit: 0, credit: 0 }]);
+      // Refresh entries
+      const params = new URLSearchParams({ type: 'journal-entries', date_from: '2025-06-01', date_to: '2026-05-31' });
+      fetch(`/api/reports/accounting?${params}`).then(r => r.json()).then(d => setEntries(d.data || []));
+    } catch (err) { alert('Error saving journal entry'); }
+    setSaving(false);
   };
 
   return (
@@ -167,8 +200,8 @@ export default function JournalEntries() {
             <div className="p-6 border-t flex justify-between">
               <button className="btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
               <div className="flex gap-2">
-                <button className="btn-secondary" disabled={!isBalanced}><Send size={14} /> Save as Draft</button>
-                <button className="btn-primary" disabled={!isBalanced}><CheckCircle size={14} /> Post Entry</button>
+                <button className="btn-secondary" disabled={!isBalanced || saving} onClick={() => handleSaveJE('draft')}><Send size={14} /> {saving ? 'Saving...' : 'Save as Draft'}</button>
+                <button className="btn-primary" disabled={!isBalanced || saving} onClick={() => handleSaveJE('posted')}><CheckCircle size={14} /> {saving ? 'Posting...' : 'Post Entry'}</button>
               </div>
             </div>
           </div>

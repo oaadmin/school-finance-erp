@@ -52,8 +52,22 @@ export default function BudgetVsActualReport() {
           <p className="text-sm text-gray-500 mt-1">Compare allocated budgets against actual spending</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button className="btn-secondary text-xs sm:text-sm" onClick={() => exportToPDF('Budget vs Actual Report', ['Budget', 'Department', 'Category', 'Budget', 'Committed', 'Actual', 'Variance', 'Utilization'], data.map(r => [r.budget_name, r.department, r.category, formatCurrency(r.budget), formatCurrency(r.committed), formatCurrency(r.actual), formatCurrency(r.variance), `${r.utilization_pct}%`]), 'budget-vs-actual')}><Download size={16} /> Export PDF</button>
-          <button className="btn-secondary text-xs sm:text-sm" onClick={() => exportToExcel(data.map(r => ({ budget_name: r.budget_name, department: r.department, category: r.category, budget: r.budget, committed: r.committed, actual: r.actual, variance: r.variance, utilization_pct: r.utilization_pct })), 'budget-vs-actual')}><Download size={16} /> Export Excel</button>
+          <button className="btn-secondary text-xs sm:text-sm" onClick={() => {
+            const deptName = deptFilter ? departments.find(d => String(d.id) === deptFilter)?.name || '' : 'All Departments';
+            const title = `Budget vs Actual Report\n${deptName} — SY 2025-2026`;
+            exportToPDF(title,
+              ['Budget Item', 'Department', 'Category', 'Annual Budget', 'Committed', 'Actual Spent', 'Remaining', 'Variance', 'Variance %', 'Utilization %'],
+              data.map(r => {
+                const remaining = r.budget - r.committed - r.actual;
+                const variancePct = r.budget > 0 ? ((r.variance / r.budget) * 100).toFixed(1) : '0.0';
+                return [r.budget_name, r.department, r.category, formatCurrency(r.budget), formatCurrency(r.committed), formatCurrency(r.actual), formatCurrency(remaining), `${r.variance >= 0 ? '' : '-'}${formatCurrency(Math.abs(r.variance))}`, `${variancePct}%`, `${r.utilization_pct}%`];
+              }), 'budget-vs-actual');
+          }}><Download size={16} /> Export PDF</button>
+          <button className="btn-secondary text-xs sm:text-sm" onClick={() => exportToExcel(data.map(r => {
+            const remaining = r.budget - r.committed - r.actual;
+            const variancePct = r.budget > 0 ? ((r.variance / r.budget) * 100).toFixed(1) : '0.0';
+            return { Budget_Item: r.budget_name, Department: r.department, Category: r.category, Annual_Budget: r.budget, Committed: r.committed, Actual_Spent: r.actual, Remaining: remaining, Variance: r.variance, Variance_Pct: `${variancePct}%`, Utilization_Pct: `${r.utilization_pct}%` };
+          }), 'budget-vs-actual')}><Download size={16} /> Export Excel</button>
         </div>
       </div>
 
@@ -104,15 +118,18 @@ export default function BudgetVsActualReport() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Budget</th><th>Department</th><th>Category</th>
-                <th className="text-right">Budget</th><th className="text-right">Committed</th>
-                <th className="text-right">Actual</th><th className="text-right">Variance</th>
+                <th>Budget Item</th><th>Department</th><th>Category</th>
+                <th className="text-right">Annual Budget</th><th className="text-right">Committed</th>
+                <th className="text-right">Actual</th><th className="text-right">Remaining</th>
+                <th className="text-right">Variance</th><th className="text-right">Var %</th>
                 <th>Status</th><th>Utilization</th>
               </tr>
             </thead>
             <tbody>
               {data.map(r => {
                 const vs = getVarianceStatus(r.variance);
+                const remaining = r.budget - r.committed - r.actual;
+                const variancePct = r.budget > 0 ? ((r.variance / r.budget) * 100).toFixed(1) : '0.0';
                 return (
                   <tr key={r.id}>
                     <td className="font-medium">{r.budget_name}</td>
@@ -121,9 +138,11 @@ export default function BudgetVsActualReport() {
                     <td className="text-right">{formatCurrency(r.budget)}</td>
                     <td className="text-right text-amber-600">{formatCurrency(r.committed)}</td>
                     <td className="text-right">{formatCurrency(r.actual)}</td>
+                    <td className="text-right">{formatCurrency(remaining)}</td>
                     <td className={`text-right font-medium ${vs.color}`}>
                       {r.variance >= 0 ? '' : '-'}{formatCurrency(Math.abs(r.variance))}
                     </td>
+                    <td className={`text-right text-xs ${r.variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>{variancePct}%</td>
                     <td><span className={`badge ${r.variance >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{vs.label}</span></td>
                     <td>
                       <div className="flex items-center gap-2">
@@ -144,8 +163,12 @@ export default function BudgetVsActualReport() {
                 <td className="text-right px-4 py-3">{formatCurrency(totals.total_budget)}</td>
                 <td className="text-right px-4 py-3 text-amber-600">{formatCurrency(totals.total_committed)}</td>
                 <td className="text-right px-4 py-3">{formatCurrency(totals.total_actual)}</td>
+                <td className="text-right px-4 py-3">{formatCurrency(totals.total_budget - totals.total_committed - totals.total_actual)}</td>
                 <td className={`text-right px-4 py-3 ${totals.total_variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {formatCurrency(Math.abs(totals.total_variance))}
+                </td>
+                <td className={`text-right px-4 py-3 text-xs ${totals.total_variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {totals.total_budget > 0 ? ((totals.total_variance / totals.total_budget) * 100).toFixed(1) : '0.0'}%
                 </td>
                 <td colSpan={2} />
               </tr>
