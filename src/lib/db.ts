@@ -198,13 +198,18 @@ function initializeDatabase(db: Database.Database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       entry_number TEXT UNIQUE NOT NULL,
       entry_date TEXT NOT NULL,
+      posting_date TEXT,
       description TEXT,
       reference_type TEXT,
+      journal_type TEXT DEFAULT 'general',
       reference_id INTEGER,
+      school_year TEXT,
       total_debit REAL DEFAULT 0,
       total_credit REAL DEFAULT 0,
       status TEXT DEFAULT 'posted',
-      created_by INTEGER REFERENCES users(id),
+      created_by TEXT,
+      approved_by TEXT,
+      posted_by TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     );
 
